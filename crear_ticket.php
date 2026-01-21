@@ -32,18 +32,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nombre_reportante = $_POST["nombre_reportante"] ?? "";
     $responsable_asignado = $_POST["responsable_asignado"] ?? null;
     
-    if (empty($titulo) || empty($descripcion) || empty($nombre_reportante)) {
-        $error = "El título, descripción y nombre de quién reporta son obligatorios";
+    if (empty($titulo) || empty($descripcion) || empty($nombre_reportante) || empty($responsable_asignado)) {
+        $error = "El título, descripción, nombre de quién reporta y responsable son obligatorios";
     } else {
         try {
             // Primero insertar con un número temporal
             $ticket_number_temp = "DCD" . uniqid();
             
-            // Si se asignó responsable, usarlo; sino dejar nulo
-            $responsable = !empty($responsable_asignado) ? $responsable_asignado : null;
-            
             $stmt = $conexion->prepare("INSERT INTO tickets (ticket_number, titulo, descripcion, usuario_creador, nombre_solicitante, propietario, responsable) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$ticket_number_temp, $titulo, $descripcion, $_SESSION["user_id"], $nombre_reportante, $_SESSION["user_id"], $responsable]);
+            $stmt->execute([$ticket_number_temp, $titulo, $descripcion, $_SESSION["user_id"], $nombre_reportante, $_SESSION["user_id"], $responsable_asignado]);
             
             // Obtener el ID del ticket insertado
             $ticket_id = $conexion->lastInsertId();
@@ -60,13 +57,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario) VALUES (?, ?, ?)");
             $stmt->execute([$ticket_id, $_SESSION["user_id"], $comentario_inicial]);
             
-            $success = "Ticket creado exitosamente: <strong>$ticket_number</strong>";
-            
-            // Limpiar formulario
-            $_POST["titulo"] = "";
-            $_POST["descripcion"] = "";
-            $_POST["nombre_reportante"] = "";
-            $_POST["responsable_asignado"] = "";
+            // Redirigir a tickets.php después de crear exitosamente
+            header("Location: tickets.php?success=creado");
+            exit();
             
         } catch (PDOException $e) {
             $error = "Error al crear el ticket: " . $e->getMessage();
@@ -124,9 +117,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             </div>
                             
                             <div class="mb-3">
-                                <label for="responsable_asignado" class="form-label">Asignar Responsable (Opcional)</label>
-                                <select class="form-select" id="responsable_asignado" name="responsable_asignado">
-                                    <option value="">-- Sin asignar --</option>
+                                <label for="responsable_asignado" class="form-label">Asignar Responsable <span class="text-danger">*</span></label>
+                                <select class="form-select" id="responsable_asignado" name="responsable_asignado" required>
+                                    <option value="">-- Seleccionar responsable --</option>
                                     <?php foreach ($usuarios_soporte as $user): ?>
                                         <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (isset($_POST["responsable_asignado"]) && $_POST["responsable_asignado"] == $user["id"]) ? "selected" : ""; ?>>
                                             <?php echo htmlspecialchars($user["username"]); ?>
@@ -136,7 +129,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             </div>
                             
                             <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary">Guardar Ticket</button>
+                                <button type="submit" class="btn btn-primary" >Guardar Ticket</button>
                                 <a href="tickets.php" class="btn btn-secondary">Volver a Tickets</a>
                             </div>
                         </form>

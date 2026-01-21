@@ -86,4 +86,11 @@ require_once 'config.php';
 
     // Inicializar al cargar
     initDarkMode();
+
+    // Recargar página al presionar atrás en el navegador
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            location.reload();
+        }
+    });
 </script>

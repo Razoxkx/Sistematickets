@@ -2,6 +2,11 @@
 session_start();
 require_once 'includes/config.php';
 
+// Prevenir cacheo de la página para que el estado se actualice al presionar atrás
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 // Verificar si el usuario está logueado
 if (!isset($_SESSION["user_id"])) {
     header("Location: index.php");
@@ -154,6 +159,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_ticket"])) {
     }
 }
 
+// Cancelar ticket
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cancelar_ticket"])) {
+    $razon_cancelacion = $_POST["razon_cancelacion"] ?? "";
+    
+    if (empty($razon_cancelacion)) {
+        $error = "Debes especificar un motivo para cancelar el ticket";
+    } else {
+        try {
+            $stmt = $conexion->prepare("UPDATE tickets SET estado_cancelacion = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
+            $stmt->execute([$razon_cancelacion, $ticket["id"]]);
+            $success = "Ticket cancelado correctamente";
+            $ticket["estado_cancelacion"] = $razon_cancelacion;
+            
+            // Agregar comentario de cancelación
+            $comentario = "Ticket cancelado. Motivo: " . htmlspecialchars($razon_cancelacion);
+            $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario) VALUES (?, ?, ?)");
+            $stmt->execute([$ticket["id"], $_SESSION["user_id"], $comentario]);
+        } catch (PDOException $e) {
+            $error = "Error al cancelar ticket: " . $e->getMessage();
+        }
+    }
+}
+
 // Editar comentario
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_comentario_id"])) {
     $comentario_id = $_POST["editar_comentario_id"];
@@ -292,11 +320,8 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                 <div class="mb-2">
                                     <strong>Responsable:</strong> 
                                     <?php 
-                                    if ($ticket["propietario"]) {
-                                        $stmt = $conexion->prepare("SELECT username FROM users WHERE id = ?");
-                                        $stmt->execute([$ticket["propietario"]]);
-                                        $prop = $stmt->fetch(PDO::FETCH_ASSOC);
-                                        echo '<span class="badge bg-success">' . htmlspecialchars($prop["username"]) . '</span>';
+                                    if ($ticket["responsable"]) {
+                                        echo '<span class="badge bg-success">' . htmlspecialchars($responsable_nombre) . '</span>';
                                     } else {
                                         echo '<span class="badge bg-secondary">Sin asignar</span>';
                                     }
@@ -307,58 +332,69 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                         
                         <hr>
                         
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>Estado:</strong></label>
-                                    <form method="POST" style="display: inline;">
-                                        <select name="nueva_estado" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width: 200px; display: inline-block;">
-                                            <?php foreach ($estados as $est): ?>
-                                                <option value="<?php echo htmlspecialchars($est); ?>" <?php echo $ticket["estado"] === $est ? "selected" : ""; ?>>
-                                                    <?php echo ucfirst(htmlspecialchars($est)); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </form>
+                        <!-- Controles de Gestión -->
+                        <div class="card border-light" style="background-color: #f9f9f9;">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3"><strong>Gestión del Ticket</strong></h6>
+                                
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label d-block"><strong>Estado:</strong></label>
+                                        <form method="POST" style="display: inline;">
+                                            <select name="nueva_estado" class="form-select form-select-sm" onchange="this.form.submit();">
+                                                <?php foreach ($estados as $est): ?>
+                                                    <option value="<?php echo htmlspecialchars($est); ?>" <?php echo $ticket["estado"] === $est ? "selected" : ""; ?>>
+                                                        <?php echo ucfirst(htmlspecialchars($est)); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </form>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <label class="form-label d-block"><strong>Responsable:</strong></label>
+                                        <form method="POST" style="display: inline;">
+                                            <select name="nuevo_responsable" class="form-select form-select-sm" onchange="this.form.submit();">
+                                                <option value="">-- Sin asignar --</option>
+                                                <?php foreach ($usuarios_soporte as $user): ?>
+                                                    <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (int)$ticket["responsable"] === (int)$user["id"] ? "selected" : ""; ?>>
+                                                        <?php echo htmlspecialchars($user["username"]); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </form>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <label class="form-label d-block"><strong>Propietario:</strong></label>
+                                        <p class="form-control-plaintext"><span class="badge bg-info"><?php echo htmlspecialchars($propietario_nombre) ?: 'Sin asignar'; ?></span></p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>Propietario:</strong></label>
-                                    <p class="form-control-plaintext"><?php echo htmlspecialchars($propietario_nombre); ?></p>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-12">
+                                        <form method="POST" style="display: inline;">
+                                            <?php if ($ticket["es_cerrado"] == 0): ?>
+                                                <button type="submit" name="cerrar_ticket" value="cerrar" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas cerrar este ticket?');">
+                                                    ✓ Cerrar Ticket
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="submit" name="cerrar_ticket" value="reabrir" class="btn btn-warning">
+                                                    ↺ Reabrir Ticket
+                                                </button>
+                                            <?php endif; ?>
+                                        </form>
+                                        
+                                        <!-- Botón de cancelación -->
+                                        <?php if (empty($ticket["estado_cancelacion"])): ?>
+                                            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalCancelar" title="Cancelar este ticket">
+                                                ✕ Cancelar Ticket
+                                            </button>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Cancelado: <?php echo htmlspecialchars($ticket["estado_cancelacion"]); ?></span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>Responsable:</strong></label>
-                                    <form method="POST" style="display: inline;">
-                                        <select name="nuevo_responsable" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width: 200px; display: inline-block;">
-                                            <option value="">-- Sin asignar --</option>
-                                            <?php foreach ($usuarios_soporte as $user): ?>
-                                                <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (int)$ticket["responsable"] === (int)$user["id"] ? "selected" : ""; ?>>
-                                                    <?php echo htmlspecialchars($user["username"]); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Botón cerrar/reabrir ticket -->
-                        <div class="row">
-                            <div class="col-md-12">
-                                <form method="POST" style="display: inline;">
-                                    <?php if ($ticket["es_cerrado"] == 0): ?>
-                                        <button type="submit" name="cerrar_ticket" value="cerrar" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas cerrar este ticket?');">
-                                            ✓ Cerrar Ticket
-                                        </button>
-                                    <?php else: ?>
-                                        <button type="submit" name="cerrar_ticket" value="reabrir" class="btn btn-warning">
-                                            ↺ Reabrir Ticket
-                                        </button>
-                                    <?php endif; ?>
-                                </form>
                             </div>
                         </div>
                     </div>
@@ -449,6 +485,70 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             document.getElementById('texto-comentario-' + id).style.display = 'block';
             document.getElementById('form-editar-' + id).style.display = 'none';
         }
+    </script>
+
+    <!-- Modal de Cancelación -->
+    <div class="modal fade" id="modalCancelar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cancelar Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="">
+                    <div class="modal-body">
+                        <p class="text-muted">¿Estás seguro de que deseas cancelar este ticket? Especifica un motivo:</p>
+                        
+                        <div class="mb-3">
+                            <label for="razonCancelacion" class="form-label"><strong>Motivo de Cancelación <span class="text-danger">*</span></strong></label>
+                            <select class="form-select" id="razonCancelacion" name="razon_cancelacion" required>
+                                <option value="">-- Seleccionar motivo --</option>
+                                <option value="Ticket Duplicado">Ticket Duplicado</option>
+                                <option value="Ya Solucionado">Ya Solucionado</option>
+                                <option value="Error en la Creación">Error en la Creación</option>
+                                <option value="Información Incompleta">Información Incompleta</option>
+                                <option value="Solicitado por Usuario">Solicitado por Usuario</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="divOtrosCancelacion" style="display: none;">
+                            <label for="especificarCancelacion" class="form-label">Especificar motivo:</label>
+                            <input type="text" class="form-control" id="especificarCancelacion" name="razon_otros" placeholder="Describe el motivo de cancelación">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Volver</button>
+                        <button type="submit" name="cancelar_ticket" value="1" class="btn btn-danger" onclick="return confirm('¿Estás seguro? Esta acción no se puede deshacer fácilmente.');">Cancelar Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mostrar input para "Otros" en cancelación
+        document.getElementById('razonCancelacion').addEventListener('change', function() {
+            document.getElementById('divOtrosCancelacion').style.display = this.value === 'Otros' ? 'block' : 'none';
+        });
+        
+        // Validar que si se selecciona "Otros", el campo esté lleno
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (document.querySelector('[name="cancelar_ticket"]')) {
+                const razon = document.getElementById('razonCancelacion').value;
+                const especificar = document.getElementById('especificarCancelacion').value;
+                
+                if (razon === 'Otros' && !especificar.trim()) {
+                    e.preventDefault();
+                    alert('Debes especificar el motivo cuando seleccionas "Otros"');
+                    return false;
+                }
+                
+                if (razon === 'Otros' && especificar.trim()) {
+                    document.querySelector('[name="razon_cancelacion"]').value = 'Otros: ' + especificar;
+                }
+            }
+        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
