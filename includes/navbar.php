@@ -8,36 +8,39 @@ require_once 'config.php';
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark" id="navbar">
     <div class="container-fluid">
-        <a class="navbar-brand" href="dashboard.php">Mi App</a>
+        <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
+            <i class="bi bi-ticket-detailed me-2" style="font-size: 1.5rem;"></i>
+            <strong>Ticket Manager</strong>
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="dashboard.php">Home</a>
+                    <a class="nav-link" href="dashboard.php"><i class="bi bi-house"></i> Home</a>
                 </li>
                 <?php 
                 $permisos = ['tisupport', 'admin'];
                 if (in_array($_SESSION["role"] ?? "viewer", $permisos)): 
                 ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="tickets.php">Tickets</a>
+                    <a class="nav-link" href="tickets.php"><i class="bi bi-ticket-detailed"></i> Tickets</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="activos.php">Activos</a>
+                    <a class="nav-link" href="activos.php"><i class="bi bi-box"></i> Activos</a>
                 </li>
                 <?php endif; ?>
                 
                 <?php if (($_SESSION["role"] ?? "") === "admin"): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="usuarios.php">Usuarios</a>
+                    <a class="nav-link" href="usuarios.php"><i class="bi bi-people"></i> Usuarios</a>
                 </li>
                 <?php endif; ?>
                 
                 <?php if (in_array($_SESSION["role"] ?? "viewer", $permisos)): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="reportes.php">📊 Reportes</a>
+                    <a class="nav-link" href="reportes.php"><i class="bi bi-bar-chart"></i> Reportes</a>
                 </li>
                 <?php endif; ?>
             </ul>
@@ -47,12 +50,12 @@ require_once 'config.php';
                 if (in_array($_SESSION["role"] ?? "viewer", $permisos)): 
                 ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="mi_contrasena.php">🔐 Mi Contraseña</a>
+                    <a class="nav-link" href="mi_contrasena.php"><i class="bi bi-key"></i> Mi Contraseña</a>
                 </li>
                 <?php endif; ?>
                 <li class="nav-item">
                     <button class="btn btn-outline-light btn-sm me-2" id="darkModeToggle" onclick="toggleDarkMode()">
-                        🌙 Oscuro
+                        <i class="bi bi-moon"></i> Oscuro
                     </button>
                 </li>
                 <li class="nav-item">
@@ -62,7 +65,7 @@ require_once 'config.php';
                     </span>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link btn btn-danger btn-sm text-white" href="index.php?logout=1">Cerrar Sesión</a>
+                    <a class="nav-link btn btn-danger btn-sm text-white" href="index.php?logout=1"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a>
                 </li>
             </ul>
         </div>
@@ -89,13 +92,13 @@ require_once 'config.php';
     function enableDarkMode() {
         document.documentElement.setAttribute('data-bs-theme', 'dark');
         localStorage.setItem('darkMode', 'enabled');
-        document.getElementById('darkModeToggle').textContent = '☀️ Claro';
+        document.getElementById('darkModeToggle').innerHTML = '<i class="bi bi-sun"></i> Claro';
     }
 
     function disableDarkMode() {
         document.documentElement.removeAttribute('data-bs-theme');
         localStorage.setItem('darkMode', 'disabled');
-        document.getElementById('darkModeToggle').textContent = '🌙 Oscuro';
+        document.getElementById('darkModeToggle').innerHTML = '<i class="bi bi-moon"></i> Oscuro';
     }
 
     // Inicializar al cargar

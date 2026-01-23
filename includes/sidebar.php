@@ -6,10 +6,14 @@ if (!isset($_SESSION)) {
 require_once 'config.php';
 ?>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
 <style>
     :root {
-        --sidebar-width: 250px;
-        --sidebar-collapsed-width: 70px;
+        --sidebar-width: 280px;
+        --sidebar-collapsed-width: 80px;
+        --sidebar-bg-dark: #0f1419;
+        --sidebar-bg-light: #f8f9fa;
     }
 
     /* Sidebar */
@@ -129,6 +133,38 @@ require_once 'config.php';
         min-width: 30px;
         text-align: center;
         font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar-nav-icon .bi {
+        font-size: 1.2rem;
+        color: inherit;
+    }
+
+    [data-bs-theme="dark"] .sidebar-nav-link .bi {
+        color: #b0b8c0;
+    }
+
+    [data-bs-theme="dark"] .sidebar-nav-link:hover .bi {
+        color: #e9ecef;
+    }
+
+    [data-bs-theme="dark"] .sidebar-nav-link.active .bi {
+        color: #0d6efd;
+    }
+
+    [data-bs-theme="light"] .sidebar-nav-link .bi {
+        color: #495057;
+    }
+
+    [data-bs-theme="light"] .sidebar-nav-link:hover .bi {
+        color: #212529;
+    }
+
+    [data-bs-theme="light"] .sidebar-nav-link.active .bi {
+        color: #0d6efd;
     }
 
     .sidebar-nav-text {
@@ -227,13 +263,13 @@ require_once 'config.php';
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="sidebar-logo">Mi App</div>
-        <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
     </div>
 
     <ul class="sidebar-nav">
         <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'dashboard.php') ? 'active' : ''; ?>" href="dashboard.php" title="Dashboard">
-                <span class="sidebar-nav-icon">🏠</span>
+                <span class="sidebar-nav-icon"><i class="bi bi-house"></i></span>
                 <span class="sidebar-nav-text">Dashboard</span>
             </a>
         </li>
@@ -244,28 +280,28 @@ require_once 'config.php';
         ?>
         <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'tickets.php') ? 'active' : ''; ?>" href="tickets.php" title="Tickets">
-                <span class="sidebar-nav-icon">🎫</span>
+                <span class="sidebar-nav-icon"><i class="bi bi-ticket-detailed"></i></span>
                 <span class="sidebar-nav-text">Tickets</span>
             </a>
         </li>
 
         <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'activos.php') ? 'active' : ''; ?>" href="activos.php" title="Activos">
-                <span class="sidebar-nav-icon">📦</span>
+                <span class="sidebar-nav-icon"><i class="bi bi-box"></i></span>
                 <span class="sidebar-nav-text">Activos</span>
             </a>
         </li>
 
         <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'reportes.php') ? 'active' : ''; ?>" href="reportes.php" title="Reportes">
-                <span class="sidebar-nav-icon">📊</span>
+                <span class="sidebar-nav-icon"><i class="bi bi-bar-chart"></i></span>
                 <span class="sidebar-nav-text">Reportes</span>
             </a>
         </li>
 
         <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'mi_contrasena.php') ? 'active' : ''; ?>" href="mi_contrasena.php" title="Mi Contraseña">
-                <span class="sidebar-nav-icon">🔐</span>
+                <span class="sidebar-nav-icon"><i class="bi bi-key"></i></span>
                 <span class="sidebar-nav-text">Mi Contraseña</span>
             </a>
         </li>
@@ -274,7 +310,7 @@ require_once 'config.php';
         <?php if (($_SESSION["role"] ?? "") === "admin"): ?>
         <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'usuarios.php') ? 'active' : ''; ?>" href="usuarios.php" title="Usuarios">
-                <span class="sidebar-nav-icon">👥</span>
+                <span class="sidebar-nav-icon"><i class="bi bi-people"></i></span>
                 <span class="sidebar-nav-text">Usuarios</span>
             </a>
         </li>
@@ -284,7 +320,7 @@ require_once 'config.php';
 
         <li class="sidebar-nav-item">
             <button class="sidebar-nav-link" onclick="toggleDarkMode()" title="Cambiar tema" style="border: none; cursor: pointer; width: 100%; text-align: left; background: none;">
-                <span class="sidebar-nav-icon" id="themeIcon">🌙</span>
+                <span class="sidebar-nav-icon" id="themeIcon"><i class="bi bi-moon"></i></span>
                 <span class="sidebar-nav-text" id="themeText">Oscuro</span>
             </button>
         </li>
@@ -300,7 +336,7 @@ require_once 'config.php';
             </div>
         </div>
         <a href="index.php?logout=1" class="sidebar-nav-link" style="border: none;" title="Cerrar sesión">
-            <span class="sidebar-nav-icon">🚪</span>
+            <span class="sidebar-nav-icon"><i class="bi bi-box-arrow-right"></i></span>
             <span class="sidebar-nav-text">Salir</span>
         </a>
     </div>
@@ -360,10 +396,10 @@ require_once 'config.php';
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
         if (localStorage.getItem('darkMode') === 'enabled') {
-            themeIcon.textContent = '☀️';
+            themeIcon.innerHTML = '<i class="bi bi-sun"></i>';
             themeText.textContent = 'Claro';
         } else {
-            themeIcon.textContent = '🌙';
+            themeIcon.innerHTML = '<i class="bi bi-moon"></i>';
             themeText.textContent = 'Oscuro';
         }
     }

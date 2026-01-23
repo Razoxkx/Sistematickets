@@ -117,7 +117,7 @@ try {
         <div class="row">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3>🎫 Tickets Cerrados</h3>
+                    <h3><i class="bi bi-ticket-detailed"></i> Tickets Cerrados</h3>
                 </div>
                 
                 <?php if (!empty($error)): ?>
@@ -132,7 +132,7 @@ try {
                     <div class="card-body">
                         <form method="GET" class="d-flex gap-2">
                             <input type="text" name="buscar" class="form-control" placeholder="Buscar por ticket, título o solicitante..." value="<?php echo htmlspecialchars($busqueda); ?>">
-                            <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Buscar</button>
                             <a href="tickets_cerrados.php" class="btn btn-secondary">Limpiar</a>
                         </form>
                     </div>
@@ -169,7 +169,7 @@ try {
                                                 </td>
                                                 <td><?php echo htmlspecialchars(substr($ticket["titulo"], 0, 50)); ?></td>
                                                 <td>
-                                                    <span class="badge bg-success">✓ Cerrado</span>
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Cerrado</span>
                                                 </td>
                                                 <td><?php echo htmlspecialchars($ticket["nombre_solicitante"]); ?></td>
                                                 <td>

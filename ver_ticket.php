@@ -315,7 +315,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
         
         <?php if (!empty($success)): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                ✓ <?php echo htmlspecialchars($success); ?>
+                <i class="bi bi-check-circle text-success"></i> <?php echo htmlspecialchars($success); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -400,7 +400,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                     <div class="col-md-12">
                                         <?php if ($ticket["es_cerrado"] == 0): ?>
                                             <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalCerrarTicket">
-                                                ✓ Cerrar Ticket
+                                                <i class="bi bi-check-circle"></i> Cerrar Ticket
                                             </button>
                                         <?php else: ?>
                                             <form method="POST" style="display: inline;">
@@ -512,7 +512,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">✓ Cerrar Ticket</h5>
+                    <h5 class="modal-title"><i class="bi bi-check-circle"></i> Cerrar Ticket</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST" action="">

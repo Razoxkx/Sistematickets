@@ -230,7 +230,7 @@ function getEstadoColor($estado) {
         
         <!-- Botón de cierre masivo -->
         <div class="mb-3" id="btnCerrarMasivo" style="display: none;">
-            <button type="button" class="btn btn-danger" onclick="abrirModalCierre()">🗑️ Cerrar Seleccionados</button>
+            <button type="button" class="btn btn-danger" onclick="abrirModalCierre()"><i class="bi bi-trash"></i> Cerrar Seleccionados</button>
             <span class="ms-2"><strong id="countSeleccionados">0</strong> ticket(s) seleccionado(s)</span>
         </div>
         
@@ -442,7 +442,7 @@ function getEstadoColor($estado) {
                 <div class="toast align-items-center text-white bg-${tipo === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                     <div class="d-flex">
                         <div class="toast-body">
-                            ${tipo === 'success' ? '✓' : '✕'} ${mensaje}
+                            ${tipo === 'success' ? '<i class="bi bi-check-circle"></i>' : '<i class="bi bi-exclamation-circle"></i>'} ${mensaje}
                         </div>
                         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                     </div>

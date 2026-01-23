@@ -353,3 +353,319 @@ textarea.form-control:focus {
     color: var(--bs-body-color);
 }
 
+/* ==================== ESTILOS DE ICONOS ==================== */
+
+/* Iconos en modo claro */
+:root[data-bs-theme="light"] .bi {
+    color: #212529;
+    transition: color 0.3s ease;
+}
+
+/* Iconos en modo oscuro */
+:root[data-bs-theme="dark"] .bi {
+    color: #f8f9fa;
+    transition: color 0.3s ease;
+}
+
+/* Iconos en navbar */
+.navbar .bi {
+    margin-right: 5px;
+    font-size: 1rem;
+}
+
+:root[data-bs-theme="light"] .navbar .bi {
+    color: #ffffff;
+}
+
+:root[data-bs-theme="dark"] .navbar .bi {
+    color: #ffffff;
+}
+
+/* Iconos en botones */
+.btn .bi {
+    margin-right: 5px;
+}
+
+.btn-primary .bi {
+    color: inherit;
+}
+
+.btn-danger .bi,
+.btn-warning .bi,
+.btn-success .bi,
+.btn-info .bi {
+    color: inherit;
+}
+
+/* Iconos en enlaces */
+a .bi {
+    margin-right: 5px;
+}
+
+:root[data-bs-theme="light"] a:not(.btn) .bi {
+    color: #0d6efd;
+}
+
+:root[data-bs-theme="dark"] a:not(.btn) .bi {
+    color: #0d9aff;
+}
+
+/* Iconos en badges */
+.badge .bi {
+    margin-right: 5px;
+    font-size: 0.9rem;
+}
+
+/* Iconos en títulos */
+h1 .bi, h2 .bi, h3 .bi, h4 .bi, h5 .bi, h6 .bi {
+    margin-right: 8px;
+}
+
+:root[data-bs-theme="light"] h1 .bi,
+:root[data-bs-theme="light"] h2 .bi,
+:root[data-bs-theme="light"] h3 .bi,
+:root[data-bs-theme="light"] h4 .bi,
+:root[data-bs-theme="light"] h5 .bi,
+:root[data-bs-theme="light"] h6 .bi {
+    color: #212529;
+}
+
+:root[data-bs-theme="dark"] h1 .bi,
+:root[data-bs-theme="dark"] h2 .bi,
+:root[data-bs-theme="dark"] h3 .bi,
+:root[data-bs-theme="dark"] h4 .bi,
+:root[data-bs-theme="dark"] h5 .bi,
+:root[data-bs-theme="dark"] h6 .bi {
+    color: #f8f9fa;
+}
+
+/* Iconos en alertas */
+.alert .bi {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+.alert-danger .bi {
+    color: #842029;
+}
+
+.alert-success .bi {
+    color: #0f5132;
+}
+
+.alert-warning .bi {
+    color: #664d03;
+}
+
+.alert-info .bi {
+    color: #055160;
+}
+
+:root[data-bs-theme="dark"] .alert-danger .bi {
+    color: #f8d7da;
+}
+
+:root[data-bs-theme="dark"] .alert-success .bi {
+    color: #d1e7dd;
+}
+
+:root[data-bs-theme="dark"] .alert-warning .bi {
+    color: #fff3cd;
+}
+
+:root[data-bs-theme="dark"] .alert-info .bi {
+    color: #cfe2ff;
+}
+
+/* Iconos de formulario */
+.form-label .bi {
+    margin-right: 6px;
+    font-size: 1rem;
+}
+
+:root[data-bs-theme="light"] .form-label .bi {
+    color: #212529;
+}
+
+:root[data-bs-theme="dark"] .form-label .bi {
+    color: #f8f9fa;
+}
+
+/* Iconos en input groups */
+.input-group .bi {
+    color: #6c757d;
+}
+
+:root[data-bs-theme="dark"] .input-group .bi {
+    color: #adb5bd;
+}
+
+/* Iconos de estado */
+.bi-check-circle {
+    color: #198754;
+}
+
+:root[data-bs-theme="dark"] .bi-check-circle {
+    color: #51cf66;
+}
+
+.bi-exclamation-circle {
+    color: #dc3545;
+}
+
+:root[data-bs-theme="dark"] .bi-exclamation-circle {
+    color: #ff6b6b;
+}
+
+.bi-info-circle {
+    color: #0d6efd;
+}
+
+:root[data-bs-theme="dark"] .bi-info-circle {
+    color: #74c0fc;
+}
+
+/* Animación de iconos en hover */
+a:hover .bi,
+button:hover .bi:not(.bi-moon):not(.bi-sun),
+.nav-link:hover .bi {
+    transition: color 0.2s ease;
+}
+
+/* Modal title icons */
+.modal-title .bi {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+/* ==================== NAVBAR MEJORADO ==================== */
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+}
+
+.navbar-brand .bi {
+    transition: transform 0.2s ease;
+}
+
+.navbar-brand:hover .bi {
+    transform: rotate(10deg) scale(1.1);
+}
+
+.nav-link {
+    font-weight: 500;
+    margin: 0 5px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.nav-link .bi {
+    font-size: 1.1rem;
+    transition: color 0.2s ease;
+}
+
+/* Badges en navbar */
+.navbar .badge {
+    font-weight: 600;
+    padding: 6px 12px;
+    margin-left: 8px;
+}
+
+/* Dark mode navbar */
+:root[data-bs-theme="dark"] .navbar {
+    background-color: #1a1d23 !important;
+    border-bottom: 1px solid #343a40;
+}
+
+:root[data-bs-theme="dark"] .navbar-brand {
+    color: #f8f9fa !important;
+}
+
+:root[data-bs-theme="dark"] .nav-link {
+    color: #c8cfd8 !important;
+}
+
+:root[data-bs-theme="dark"] .nav-link:hover {
+    color: #f8f9fa !important;
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Light mode navbar */
+:root[data-bs-theme="light"] .navbar {
+    background-color: #343a40 !important;
+    border-bottom: 1px solid #212529;
+}
+
+:root[data-bs-theme="light"] .navbar-brand {
+    color: #f8f9fa !important;
+}
+
+:root[data-bs-theme="light"] .nav-link {
+    color: #c8cfd8 !important;
+}
+
+:root[data-bs-theme="light"] .nav-link:hover {
+    color: #f8f9fa !important;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ==================== LOGIN PAGE ==================== */
+
+:root[data-bs-theme="light"] body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+}
+
+:root[data-bs-theme="dark"] body {
+    background: linear-gradient(135deg, #1a1d23 0%, #0d0f12 100%);
+    min-height: 100vh;
+}
+
+.card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.card-body {
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+/* Form controls mejorados */
+.form-control,
+.form-select {
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+:root[data-bs-theme="dark"] .form-control,
+:root[data-bs-theme="dark"] .form-select {
+    background-color: #2a2d33;
+    border-color: #495057;
+    color: #f8f9fa;
+}
+
+:root[data-bs-theme="dark"] .form-control:focus,
+:root[data-bs-theme="dark"] .form-select:focus {
+    background-color: #2a2d33;
+    color: #f8f9fa;
+}
+

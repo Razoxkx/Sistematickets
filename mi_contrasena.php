@@ -98,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="card-body">
                         <?php if (!empty($error)): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <strong>❌ Error:</strong> <?php echo htmlspecialchars($error); ?>
+                                <strong><i class="bi bi-exclamation-circle text-danger"></i> Error:</strong> <?php echo htmlspecialchars($error); ?>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         <?php endif; ?>

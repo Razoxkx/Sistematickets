@@ -239,7 +239,7 @@ if (isset($_GET["editar"])) {
                 <!-- Botones de acción -->
                 <div class="mb-3">
                     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrearUsuario">
-                        ➕ Crear Nuevo Usuario
+                        <i class="bi bi-plus-circle"></i> Crear Nuevo Usuario
                     </button>
                 </div>
                 
@@ -285,13 +285,13 @@ if (isset($_GET["editar"])) {
                                             </td>
                                             <td>
                                                 <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalEditarUsuario" onclick="cargarDatosEditar(<?php echo htmlspecialchars(json_encode($user)); ?>)">
-                                                    ✏️ Editar
+                                                    <i class="bi bi-pencil"></i> Editar
                                                 </button>
                                                 <?php if ($user["id"] != $_SESSION["user_id"]): ?>
                                                     <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
                                                         <input type="hidden" name="user_id" value="<?php echo $user["id"]; ?>">
                                                         <input type="hidden" name="accion_eliminar" value="1">
-                                                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Eliminar</button>
+                                                        <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Eliminar</button>
                                                     </form>
                                                 <?php endif; ?>
                                             </td>
@@ -316,7 +316,7 @@ if (isset($_GET["editar"])) {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">➕ Crear Nuevo Usuario</h5>
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Crear Nuevo Usuario</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST">
@@ -357,7 +357,7 @@ if (isset($_GET["editar"])) {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
-                    <h5 class="modal-title">✏️ Editar Usuario</h5>
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Usuario</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST">
