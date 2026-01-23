@@ -25,6 +25,13 @@ $success = "";
 $ticket = null;
 $comentarios = [];
 
+// Capturar mensaje de éxito del query string
+if (isset($_GET["success"])) {
+    if ($_GET["success"] === "comentario_editado") {
+        $success = "✅ Comentario editado correctamente";
+    }
+}
+
 // Obtener ID o número del ticket
 $ticket_id = $_GET["id"] ?? "";
 
@@ -59,7 +66,7 @@ try {
         JOIN users u ON c.usuario_id = u.id
         LEFT JOIN users um ON c.usuario_modificado_por = um.id
         WHERE c.ticket_id = ?
-        ORDER BY c.fecha ASC
+        ORDER BY c.fecha DESC
     ");
     $stmt->execute([$ticket["id"]]);
     $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -84,20 +91,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nueva_estado"])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nuevo_responsable"])) {
     try {
         $nuevo_responsable = $_POST["nuevo_responsable"] === "" ? null : $_POST["nuevo_responsable"];
+        $responsable_anterior = $ticket["responsable"];
+        
         $stmt = $conexion->prepare("UPDATE tickets SET responsable = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
         $stmt->execute([$nuevo_responsable, $ticket["id"]]);
         $success = "Responsable actualizado correctamente";
         $ticket["responsable"] = $nuevo_responsable;
         
-        // Recargar responsable_nombre
+        // Obtener nombre del usuario actual (quien asigna)
+        $stmt = $conexion->prepare("SELECT username FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION["user_id"]]);
+        $user_actual = $stmt->fetch(PDO::FETCH_ASSOC);
+        $usuario_asigna = $user_actual["username"] ?? "Sistema";
+        
+        // Obtener nombre del nuevo responsable
+        $responsable_nombre = "Sin asignar";
         if ($nuevo_responsable) {
             $stmt = $conexion->prepare("SELECT username FROM users WHERE id = ?");
             $stmt->execute([$nuevo_responsable]);
             $resp_user = $stmt->fetch(PDO::FETCH_ASSOC);
             $responsable_nombre = $resp_user["username"] ?? "No asignado";
-        } else {
-            $responsable_nombre = "";
         }
+        
+        // Agregar comentario automático de asignación
+        $mensaje_asignacion = "👤 " . htmlspecialchars($usuario_asigna) . " asignó este ticket a " . htmlspecialchars($responsable_nombre);
+        $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario, tipo_comentario) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$ticket["id"], $_SESSION["user_id"], $mensaje_asignacion, 'asignacion']);
+        
+        // Recargar comentarios
+        $stmt = $conexion->prepare("
+            SELECT c.*, u.username, 
+                   COALESCE(um.username, '') as usuario_modifico_nombre
+            FROM comentarios_tickets c
+            JOIN users u ON c.usuario_id = u.id
+            LEFT JOIN users um ON c.usuario_modificado_por = um.id
+            WHERE c.ticket_id = ?
+            ORDER BY c.fecha DESC
+        ");
+        $stmt->execute([$ticket["id"]]);
+        $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         $error = "Error al actualizar responsable: " . $e->getMessage();
     }
@@ -124,7 +156,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nuevo_comentario"])) {
                 JOIN users u ON c.usuario_id = u.id
                 LEFT JOIN users um ON c.usuario_modificado_por = um.id
                 WHERE c.ticket_id = ?
-                ORDER BY c.fecha ASC
+                ORDER BY c.fecha DESC
             ");
             $stmt->execute([$ticket["id"]]);
             $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -166,7 +198,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_ticket"])) {
                     JOIN users u ON c.usuario_id = u.id
                     LEFT JOIN users um ON c.usuario_modificado_por = um.id
                     WHERE c.ticket_id = ?
-                    ORDER BY c.fecha ASC
+                    ORDER BY c.fecha DESC
                 ");
                 $stmt->execute([$ticket["id"]]);
                 $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -184,29 +216,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_ticket"])) {
     }
 }
 
-// Cancelar ticket
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cancelar_ticket"])) {
-    $razon_cancelacion = $_POST["razon_cancelacion"] ?? "";
-    
-    if (empty($razon_cancelacion)) {
-        $error = "Debes especificar un motivo para cancelar el ticket";
-    } else {
-        try {
-            $stmt = $conexion->prepare("UPDATE tickets SET estado_cancelacion = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
-            $stmt->execute([$razon_cancelacion, $ticket["id"]]);
-            $success = "Ticket cancelado correctamente";
-            $ticket["estado_cancelacion"] = $razon_cancelacion;
-            
-            // Agregar comentario de cancelación
-            $comentario = "Ticket cancelado. Motivo: " . htmlspecialchars($razon_cancelacion);
-            $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario) VALUES (?, ?, ?)");
-            $stmt->execute([$ticket["id"], $_SESSION["user_id"], $comentario]);
-        } catch (PDOException $e) {
-            $error = "Error al cancelar ticket: " . $e->getMessage();
-        }
-    }
-}
-
 // Editar comentario
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_comentario_id"])) {
     $comentario_id = $_POST["editar_comentario_id"];
@@ -216,30 +225,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_comentario_id"]
         $error = "El comentario no puede estar vacío";
     } else {
         try {
-            // Verificar que el usuario sea el autor o admin
+            // Verificar que el usuario sea el autor (solo el autor puede editar su comentario)
             $stmt = $conexion->prepare("SELECT usuario_id FROM comentarios_tickets WHERE id = ?");
             $stmt->execute([$comentario_id]);
             $com_autor = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($com_autor["usuario_id"] != $_SESSION["user_id"] && $_SESSION["role"] !== "admin") {
-                $error = "No puedes editar comentarios de otros usuarios";
+            if ($com_autor["usuario_id"] != $_SESSION["user_id"]) {
+                $error = "Solo puedes editar tus propios comentarios";
             } else {
                 $stmt = $conexion->prepare("UPDATE comentarios_tickets SET comentario = ?, fecha_modificacion = NOW(), usuario_modificado_por = ? WHERE id = ?");
                 $stmt->execute([$nuevo_texto, $_SESSION["user_id"], $comentario_id]);
-                $success = "Comentario editado correctamente";
                 
-                // Recargar comentarios
-                $stmt = $conexion->prepare("
-                    SELECT c.*, u.username, 
-                           COALESCE(um.username, '') as usuario_modifico_nombre
-                    FROM comentarios_tickets c 
-                    JOIN users u ON c.usuario_id = u.id
-                    LEFT JOIN users um ON c.usuario_modificado_por = um.id
-                    WHERE c.ticket_id = ? 
-                    ORDER BY c.fecha ASC
-                ");
-                $stmt->execute([$ticket["id"]]);
-                $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                // Recargar página para mostrar cambios
+                header("Location: ver_ticket.php?id=" . $ticket["id"] . "&success=comentario_editado");
+                exit();
             }
         } catch (PDOException $e) {
             $error = "Error al editar comentario: " . $e->getMessage();
@@ -363,36 +362,32 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                         <hr>
                         
                         <!-- Controles de Gestión -->
-                        <div class="card border-light" style="background-color: #f9f9f9;">
+                        <div class="card border-light card-gestion">
                             <div class="card-body">
                                 <h6 class="card-title mb-3"><strong>Gestión del Ticket</strong></h6>
                                 
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <label class="form-label d-block"><strong>Estado:</strong></label>
-                                        <form method="POST" style="display: inline;">
-                                            <select name="nueva_estado" class="form-select form-select-sm" onchange="this.form.submit();">
-                                                <?php foreach ($estados as $est): ?>
-                                                    <option value="<?php echo htmlspecialchars($est); ?>" <?php echo $ticket["estado"] === $est ? "selected" : ""; ?>>
-                                                        <?php echo ucfirst(htmlspecialchars($est)); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </form>
+                                        <select name="nueva_estado" class="form-select form-select-sm select-tema" onchange="cambiarEstado(this.value);">
+                                            <?php foreach ($estados as $est): ?>
+                                                <option value="<?php echo htmlspecialchars($est); ?>" <?php echo $ticket["estado"] === $est ? "selected" : ""; ?>>
+                                                    <?php echo ucfirst(htmlspecialchars($est)); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                     
                                     <div class="col-md-4">
                                         <label class="form-label d-block"><strong>Responsable:</strong></label>
-                                        <form method="POST" style="display: inline;">
-                                            <select name="nuevo_responsable" class="form-select form-select-sm" onchange="this.form.submit();">
-                                                <option value="">-- Sin asignar --</option>
-                                                <?php foreach ($usuarios_soporte as $user): ?>
-                                                    <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (int)$ticket["responsable"] === (int)$user["id"] ? "selected" : ""; ?>>
-                                                        <?php echo htmlspecialchars($user["username"]); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </form>
+                                        <select name="nuevo_responsable" class="form-select form-select-sm select-tema" onchange="cambiarResponsable(this.value);">
+                                            <option value="">-- Sin asignar --</option>
+                                            <?php foreach ($usuarios_soporte as $user): ?>
+                                                <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (int)$ticket["responsable"] === (int)$user["id"] ? "selected" : ""; ?>>
+                                                    <?php echo htmlspecialchars($user["username"]); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                     
                                     <div class="col-md-4">
@@ -414,15 +409,6 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                                 </button>
                                             </form>
                                         <?php endif; ?>
-                                        
-                                        <!-- Botón de cancelación -->
-                                        <?php if (empty($ticket["estado_cancelacion"])): ?>
-                                            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalCancelar" title="Cancelar este ticket">
-                                                ✕ Cancelar Ticket
-                                            </button>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary">Cancelado: <?php echo htmlspecialchars($ticket["estado_cancelacion"]); ?></span>
-                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -441,17 +427,33 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     </div>
                 </div>
                 
+                <!-- Agregar Comentario - Al inicio -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <strong>Agregar Comentario</strong>
+                    </div>
+                    <div class="card-body">
+                        <form onsubmit="enviarComentarioAJAX(event);">
+                            <input type="hidden" name="ticket_id" value="<?php echo $ticket['id']; ?>">
+                            <div class="mb-3">
+                                <textarea class="form-control" name="nuevo_comentario" rows="4" placeholder="Escribe el avance o comentario del ticket..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Agregar Comentario</button>
+                        </form>
+                    </div>
+                </div>
+                
                 <!-- Comentarios -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <strong>Comentarios (<?php echo count($comentarios); ?>)</strong>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" id="comentarios-contenedor">
                         <?php if (empty($comentarios)): ?>
                             <p class="text-muted">No hay comentarios aún</p>
                         <?php else: ?>
                             <?php foreach ($comentarios as $com): ?>
-                                <div class="comentario <?php echo ($com['tipo_comentario'] === 'cierre') ? 'comentario-cierre' : ''; ?>" id="comentario-<?php echo $com['id']; ?>">
+                                <div class="comentario <?php echo ($com['tipo_comentario'] === 'cierre') ? 'comentario-cierre' : (($com['tipo_comentario'] === 'asignacion') ? 'comentario-asignacion' : (($com['tipo_comentario'] === 'mencion') ? 'comentario-mencion' : '')); ?>" id="comentario-<?php echo $com['id']; ?>">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div>
                                             <div class="comentario-autor"><?php echo htmlspecialchars($com["username"]); ?></div>
@@ -459,16 +461,16 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                             
                                             <?php if (!empty($com["fecha_modificacion"])): ?>
                                                 <div class="comentario-modificado">
-                                                    ✎ Editado por <?php echo htmlspecialchars($com["usuario_modifico_nombre"]); ?> el <?php echo formatearFechaHora($com["fecha_modificacion"]); ?>
+                                                    ⏱️ Última edición: <?php echo formatearFechaHora($com["fecha_modificacion"]); ?>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
-                                        <?php if ($com["usuario_id"] == $_SESSION["user_id"] || $_SESSION["role"] === "admin"): ?>
+                                        <?php if ($com["usuario_id"] == $_SESSION["user_id"] && $com["tipo_comentario"] !== 'asignacion' && $com["tipo_comentario"] !== 'cierre'): ?>
                                             <button class="btn btn-sm btn-outline-primary btn-editar-com" onclick="editarComentario(<?php echo $com['id']; ?>)">Editar</button>
                                         <?php endif; ?>
                                     </div>
                                     <div class="mt-2" id="texto-comentario-<?php echo $com['id']; ?>">
-                                        <?php echo nl2br(htmlspecialchars($com["comentario"])); ?>
+                                        <?php echo nl2br(procesarMencionesTikets($com["comentario"])); ?>
                                     </div>
                                     
                                     <!-- Formulario edición -->
@@ -486,17 +488,6 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                         
                         <hr class="my-4">
                         
-                        <!-- Agregar Comentario -->
-                        <h5>Agregar Comentario</h5>
-                        <form method="POST" action="">
-                            <div class="mb-3">
-                                <textarea class="form-control" name="nuevo_comentario" rows="4" placeholder="Escribe el avance o comentario del ticket..." required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Agregar Comentario</button>
-                        </form>
-                    </div>
-                </div>
-                
                 <div class="mb-4">
                     <a href="tickets.php" class="btn btn-secondary">Volver a Tickets</a>
                 </div>
@@ -543,45 +534,6 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
         </div>
     </div>
 
-    <!-- Modal de Cancelación -->
-    <div class="modal fade" id="modalCancelar" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Cancelar Ticket</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="">
-                    <div class="modal-body">
-                        <p class="text-muted">¿Estás seguro de que deseas cancelar este ticket? Especifica un motivo:</p>
-                        
-                        <div class="mb-3">
-                            <label for="razonCancelacion" class="form-label"><strong>Motivo de Cancelación <span class="text-danger">*</span></strong></label>
-                            <select class="form-select" id="razonCancelacion" name="razon_cancelacion" required>
-                                <option value="">-- Seleccionar motivo --</option>
-                                <option value="Ticket Duplicado">Ticket Duplicado</option>
-                                <option value="Ya Solucionado">Ya Solucionado</option>
-                                <option value="Error en la Creación">Error en la Creación</option>
-                                <option value="Información Incompleta">Información Incompleta</option>
-                                <option value="Solicitado por Usuario">Solicitado por Usuario</option>
-                                <option value="Otros">Otros</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3" id="divOtrosCancelacion" style="display: none;">
-                            <label for="especificarCancelacion" class="form-label">Especificar motivo:</label>
-                            <input type="text" class="form-control" id="especificarCancelacion" name="razon_otros" placeholder="Describe el motivo de cancelación">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Volver</button>
-                        <button type="submit" name="cancelar_ticket" value="1" class="btn btn-danger" onclick="return confirm('¿Estás seguro? Esta acción no se puede deshacer fácilmente.');">Cancelar Ticket</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <script>
         // Mostrar input para "Otros" en cancelación
         document.getElementById('razonCancelacion').addEventListener('change', function() {
@@ -605,6 +557,126 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                 }
             }
         });
+        
+        // AJAX para cambiar estado
+        function cambiarEstado(nuevoEstado) {
+            const ticketId = document.querySelector('input[name="ticket_id"]')?.value || new URLSearchParams(window.location.search).get('id');
+            
+            fetch('api_ticket.php?action=cambiar_estado', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    ticket_id: ticketId,
+                    estado: nuevoEstado
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Estado actualizado');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+        
+        // AJAX para cambiar responsable
+        function cambiarResponsable(nuevoResponsable) {
+            const ticketId = document.querySelector('input[name="ticket_id"]')?.value || new URLSearchParams(window.location.search).get('id');
+            
+            fetch('api_ticket.php?action=cambiar_responsable', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    ticket_id: ticketId,
+                    responsable: nuevoResponsable
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Actualizar responsable en pantalla
+                    const propietarioEl = document.querySelector('[data-responsable]');
+                    if (propietarioEl) {
+                        propietarioEl.textContent = data.responsable_nombre;
+                    }
+                    // Agregar comentario automático arriba
+                    agregarComentarioDOM(data.comentario);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+        
+        // AJAX para agregar comentario
+        function enviarComentarioAJAX(e) {
+            e.preventDefault();
+            
+            const ticketId = document.querySelector('input[name="ticket_id"]')?.value || new URLSearchParams(window.location.search).get('id');
+            const comentario = document.querySelector('textarea[name="nuevo_comentario"]').value;
+            
+            fetch('api_ticket.php?action=agregar_comentario', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    ticket_id: ticketId,
+                    comentario: comentario
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector('textarea[name="nuevo_comentario"]').value = '';
+                    agregarComentarioDOM(data.comentario);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+        
+        // Agregar comentario al DOM sin recargar
+        function agregarComentarioDOM(com) {
+            const contenedor = document.querySelector('#comentarios-contenedor');
+            if (!contenedor) return;
+            
+            const tipoClase = com.tipo_comentario === 'cierre' ? 'comentario-cierre' : (com.tipo_comentario === 'asignacion' ? 'comentario-asignacion' : (com.tipo_comentario === 'mencion' ? 'comentario-mencion' : ''));
+            
+            // Procesar menciones de tickets (#DCDXXXXXX) y activos (#AKXXXXXXX)
+            let comentarioConMenciones = com.comentario
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/#(DCD\d{6})/gi, '<a href="ver_ticket.php?id=$1" class="ticket-mention">$1</a>')
+                .replace(/#(AK\d{7})/gi, '<a href="ver_activo.php?id=$1" class="ticket-mention">$1</a>');
+            
+            const html = `
+                <div class="comentario ${tipoClase}" id="comentario-${com.id}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="comentario-autor">${com.username}</div>
+                            <div class="comentario-fecha">${formatearFechaCliente(com.fecha)}</div>
+                        </div>
+                    </div>
+                    <div class="mt-2" id="texto-comentario-${com.id}">
+                        ${comentarioConMenciones}
+                    </div>
+                </div>
+            `;
+            
+            // Insertar al inicio del contenedor
+            contenedor.insertAdjacentHTML('afterbegin', html);
+        }
+        
+        // Función para formatear fecha en cliente
+        function formatearFechaCliente(fecha) {
+            const date = new Date(fecha);
+            const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+            const mes = meses[date.getMonth()];
+            const dia = String(date.getDate()).padStart(2, '0');
+            const año = date.getFullYear();
+            const horas = String(date.getHours()).padStart(2, '0');
+            const minutos = String(date.getMinutes()).padStart(2, '0');
+            return `${mes} ${dia} ${año} - ${horas}:${minutos}`;
+        }
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>

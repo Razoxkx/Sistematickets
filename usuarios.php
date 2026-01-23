@@ -19,6 +19,17 @@ $success = "";
 $usuarios = [];
 $usuario_editar = null;
 
+// Capturar mensaje de éxito del query string
+if (isset($_GET["success"])) {
+    if ($_GET["success"] === "creado") {
+        $success = "✅ Usuario creado exitosamente. Contraseña temporal: 111111";
+    } elseif ($_GET["success"] === "actualizado") {
+        $success = "✅ Usuario actualizado exitosamente";
+    } elseif ($_GET["success"] === "eliminado") {
+        $success = "✅ Usuario eliminado exitosamente";
+    }
+}
+
 // CREAR USUARIO - POST
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"])) {
     $username = trim($_POST["username"] ?? "");
@@ -55,7 +66,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"])) {
                     $stmt = $conexion->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
                     $stmt->execute([$username, $password_hash, $role]);
                 }
-                $success = "Usuario '$username' creado exitosamente. Contraseña temporal: 111111";
+                header("Location: usuarios.php?success=creado");
+                exit();
             }
         } catch (PDOException $e) {
             $error = "Error al crear usuario: " . $e->getMessage();
@@ -102,7 +114,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
                     $stmt->execute([$username, $role, $user_id]);
                 }
             }
-            $success = "Usuario '$username' actualizado exitosamente";
+            header("Location: usuarios.php?success=actualizado");
+            exit();
         } catch (PDOException $e) {
             $error = "Error al actualizar usuario: " . $e->getMessage();
         }
@@ -116,7 +129,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar"])) {
         try {
             $stmt = $conexion->prepare("DELETE FROM users WHERE id = ?");
             $stmt->execute([$user_id]);
-            $success = "Usuario eliminado exitosamente";
+            header("Location: usuarios.php?success=eliminado");
+            exit();
         } catch (PDOException $e) {
             // Verificar si es un error de integridad de clave externa
             if ($e->getCode() == '23000') {
@@ -145,10 +159,14 @@ try {
     $stmt = $conexion->query("SELECT $select_fields FROM users ORDER BY username");
     $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    foreach ($usuarios as &$user) {
+    // Agregar campos faltantes si no existen
+    $usuarios_procesados = [];
+    foreach ($usuarios as $user) {
         if (!$has_email) $user['email'] = null;
         if (!$has_necesita_cambiar) $user['necesita_cambiar_password'] = 0;
+        $usuarios_procesados[] = $user;
     }
+    $usuarios = $usuarios_procesados;
 } catch (PDOException $e) {
     $error = "Error al obtener usuarios: " . $e->getMessage();
 }

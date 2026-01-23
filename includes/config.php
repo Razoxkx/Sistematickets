@@ -57,5 +57,28 @@ function formatearFecha($fecha) {
     $año = date('Y', $timestamp);
     return "$mes $dia $año";
 }
+
+// Función para convertir menciones de tickets y activos en enlaces
+function procesarMenciones($texto) {
+    // Primero procesar menciones de tickets (#DCDXXXXXX)
+    $texto = htmlspecialchars($texto);
+    $texto = preg_replace(
+        '/#(DCD\d{6})/i',
+        '<a href="ver_ticket.php?id=$1" class="ticket-mention">$1</a>',
+        $texto
+    );
+    // Luego procesar menciones de activos (#AKXXXXXXX)
+    $texto = preg_replace(
+        '/#(AK\d{7})/i',
+        '<a href="ver_activo.php?id=$1" class="ticket-mention">$1</a>',
+        $texto
+    );
+    return $texto;
+}
+
+// Función antigua mantenida por compatibilidad
+function procesarMencionesTikets($texto) {
+    return procesarMenciones($texto);
+}
 ?>
 

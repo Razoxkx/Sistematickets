@@ -11,7 +11,7 @@ if (!isset($_SESSION["user_id"])) {
 // Obtener cantidad de tickets asignados al usuario
 $tickets_asignados = 0;
 try {
-    $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE responsable_id = ? AND es_cerrado = 0");
+    $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE responsable = ? AND es_cerrado = 0");
     $stmt->execute([$_SESSION["user_id"]]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     $tickets_asignados = $result['total'] ?? 0;
@@ -32,6 +32,15 @@ $fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Dashboard</title>
+    <style>
+        a[href*="mis_tickets"] .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        a[href*="mis_tickets"] .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+    </style>
     <script>
         (function() {
             const darkMode = localStorage.getItem('darkMode');
@@ -49,7 +58,7 @@ $fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
     <div class="container mt-5">
         <div class="row">
             <div class="col-md-8 offset-md-2">
-                <div class="card">
+                <div class="card card-gestion">
                     <div class="card-body">
                         <h1>Bienvenido a tu Dashboard</h1>
                         <p class="lead">Has iniciado sesión como <strong><?php echo htmlspecialchars($_SESSION["username"]); ?></strong></p>
@@ -59,7 +68,7 @@ $fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
                         <!-- Tarjetas de información -->
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <div class="card bg-light border-primary">
+                                <div class="card card-gestion border-primary">
                                     <div class="card-body text-center">
                                         <h5 class="card-title">📅 Fecha Actual</h5>
                                         <p class="card-text display-6"><?php echo ucfirst($fecha_formateada); ?></p>
@@ -67,13 +76,15 @@ $fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card bg-light border-success">
-                                    <div class="card-body text-center">
-                                        <h5 class="card-title">🎫 Tickets Asignados</h5>
-                                        <p class="card-text display-6"><?php echo $tickets_asignados; ?></p>
-                                        <small class="text-muted">Abiertos y en progreso</small>
+                                <a href="tickets.php?mis_tickets" style="text-decoration: none; color: inherit;">
+                                    <div class="card card-gestion border-success" style="cursor: pointer; transition: transform 0.2s;">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">🎫 Tickets Asignados</h5>
+                                            <p class="card-text display-6"><?php echo $tickets_asignados; ?></p>
+                                            <small class="text-muted">Abiertos y en progreso</small>
+                                        </div>
                                     </div>
-                                </div>
+                                </a>
                             </div>
                         </div>
                         
