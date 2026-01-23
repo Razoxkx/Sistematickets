@@ -66,7 +66,7 @@ try {
                 FROM comentarios_tickets c
                 JOIN users u ON c.usuario_id = u.id
                 WHERE c.ticket_id = ?
-                ORDER BY c.fecha_comentario ASC
+                ORDER BY c.fecha ASC
             ");
             $stmt->execute([$ticket["id"]]);
             $comentarios_map[$ticket["id"]] = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -198,7 +198,7 @@ if (empty($tickets)) {
                 foreach ($comentarios_map[$ticket["id"]] as $comentario) {
                     $html .= '<div class="comentario">
                         <strong>' . htmlspecialchars($comentario["username"]) . '</strong>
-                        <span class="fecha">(' . formatearFechaHora($comentario["fecha_comentario"]) . ')</span><br>
+                        <span class="fecha">(' . formatearFechaHora($comentario["fecha"]) . ')</span><br>
                         ' . nl2br(htmlspecialchars($comentario["comentario"])) . '
                     </div>';
                 }

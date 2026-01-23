@@ -1,23 +1,50 @@
 <?php
 session_start();
+require_once 'includes/config.php';
 
 // Verificar si el usuario está logueado
 if (!isset($_SESSION["user_id"])) {
     header("Location: index.php");
     exit();
 }
+
+// Obtener cantidad de tickets asignados al usuario
+$tickets_asignados = 0;
+try {
+    $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE responsable_id = ? AND es_cerrado = 0");
+    $stmt->execute([$_SESSION["user_id"]]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $tickets_asignados = $result['total'] ?? 0;
+} catch (PDOException $e) {
+    // Si hay error, dejar en 0
+}
+
+// Fecha actual
+$fecha_actual = new DateTime();
+$fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
 ?>
 
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/dark-mode.css" rel="stylesheet">
     <title>Dashboard</title>
+    <script>
+        (function() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'enabled') {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-bs-theme');
+            }
+        })();
+    </script>
 </head>
 <body>
-    <?php include 'includes/navbar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     
     <div class="container mt-5">
         <div class="row">
@@ -26,6 +53,29 @@ if (!isset($_SESSION["user_id"])) {
                     <div class="card-body">
                         <h1>Bienvenido a tu Dashboard</h1>
                         <p class="lead">Has iniciado sesión como <strong><?php echo htmlspecialchars($_SESSION["username"]); ?></strong></p>
+                        
+                        <hr>
+                        
+                        <!-- Tarjetas de información -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light border-primary">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">📅 Fecha Actual</h5>
+                                        <p class="card-text display-6"><?php echo ucfirst($fecha_formateada); ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light border-success">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">🎫 Tickets Asignados</h5>
+                                        <p class="card-text display-6"><?php echo $tickets_asignados; ?></p>
+                                        <small class="text-muted">Abiertos y en progreso</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <hr>
                         

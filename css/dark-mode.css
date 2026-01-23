@@ -1,0 +1,162 @@
+/* Estilos para modo oscuro */
+:root[data-bs-theme="dark"] {
+    --bs-body-bg: #212529;
+    --bs-body-color: #f8f9fa;
+    --ticket-header-bg: #343a40;
+    --ticket-header-border: #0d6efd;
+    --comentario-bg: #343a40;
+    --comentario-border: #495057;
+    --comentario-autor-color: #0d6efd;
+    --comentario-fecha-color: #a8b0b8;
+}
+
+:root[data-bs-theme="light"] {
+    --bs-body-bg: #ffffff;
+    --bs-body-color: #212529;
+    --ticket-header-bg: #f8f9fa;
+    --ticket-header-border: #0d6efd;
+    --comentario-bg: #f8f9fa;
+    --comentario-border: #e9ecef;
+    --comentario-autor-color: #0d6efd;
+    --comentario-fecha-color: #6c757d;
+}
+
+body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.ticket-header {
+    background-color: var(--ticket-header-bg);
+    border-left: 5px solid var(--ticket-header-border);
+}
+
+.comentario {
+    border-left: 3px solid var(--comentario-border);
+    margin: 15px 0;
+    padding: 15px;
+    background: var(--comentario-bg);
+    border-radius: 4px;
+    position: relative;
+}
+
+.comentario-autor {
+    font-weight: bold;
+    color: var(--comentario-autor-color);
+}
+
+.comentario-fecha {
+    font-size: 0.85em;
+    color: var(--comentario-fecha-color);
+}
+
+.comentario-modificado {
+    font-size: 0.8em;
+    color: #e74c3c;
+    margin-top: 5px;
+}
+
+.btn-editar-com {
+    font-size: 0.8em;
+    padding: 0.25rem 0.5rem;
+}
+
+.comentario-edit-form {
+    display: none;
+    margin-top: 10px;
+}
+
+.card {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border: 1px solid var(--bs-border-color);
+}
+
+.card-header {
+    background-color: var(--ticket-header-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.table {
+    color: var(--bs-body-color);
+}
+
+.form-control,
+.form-select {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border: 1px solid var(--bs-border-color);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border-color: #0d6efd;
+}
+
+.modal-content {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.alert {
+    background-color: var(--ticket-header-bg);
+    color: var(--bs-body-color);
+}
+
+/* Estilos para comentarios de cierre */
+.comentario.comentario-cierre {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-left: 5px solid #28a745;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+    position: relative;
+}
+
+[data-bs-theme="dark"] .comentario.comentario-cierre {
+    background: linear-gradient(135deg, #1e4620 0%, #2d6a31 100%);
+    border-left: 5px solid #51cf66;
+}
+
+.comentario-cierre .comentario-autor {
+    color: #155724;
+    font-weight: bold;
+}
+
+[data-bs-theme="dark"] .comentario-cierre .comentario-autor {
+    color: #69db7c;
+}
+
+.comentario-cierre .comentario-fecha {
+    color: #0c5460;
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .comentario-cierre .comentario-fecha {
+    color: #86efac;
+}
+
+.comentario-cierre::before {
+    content: "✓ TICKET CERRADO";
+    display: block;
+    background-color: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 0.75em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    width: fit-content;
+}
+
+[data-bs-theme="dark"] .comentario-cierre::before {
+    background-color: #51cf66;
+    color: #1a1a1a;
+}

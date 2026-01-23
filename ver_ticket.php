@@ -55,11 +55,11 @@ try {
     $stmt = $conexion->prepare("
         SELECT c.*, u.username, 
                COALESCE(um.username, '') as usuario_modifico_nombre
-        FROM comentarios_tickets c 
+        FROM comentarios_tickets c
         JOIN users u ON c.usuario_id = u.id
         LEFT JOIN users um ON c.usuario_modificado_por = um.id
-        WHERE c.ticket_id = ? 
-        ORDER BY c.fecha_comentario ASC
+        WHERE c.ticket_id = ?
+        ORDER BY c.fecha ASC
     ");
     $stmt->execute([$ticket["id"]]);
     $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -120,11 +120,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nuevo_comentario"])) {
             $stmt = $conexion->prepare("
                 SELECT c.*, u.username, 
                        COALESCE(um.username, '') as usuario_modifico_nombre
-                FROM comentarios_tickets c 
+                FROM comentarios_tickets c
                 JOIN users u ON c.usuario_id = u.id
                 LEFT JOIN users um ON c.usuario_modificado_por = um.id
-                WHERE c.ticket_id = ? 
-                ORDER BY c.fecha_comentario ASC
+                WHERE c.ticket_id = ?
+                ORDER BY c.fecha ASC
             ");
             $stmt->execute([$ticket["id"]]);
             $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -140,12 +140,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_ticket"])) {
         $nuevo_estado_cerrado = $_POST["cerrar_ticket"] === "cerrar" ? 1 : 0;
         
         if ($nuevo_estado_cerrado == 1) {
-            // Cuando se cierra, actualizar estado a "ticket cerrado"
-            $stmt = $conexion->prepare("UPDATE tickets SET es_cerrado = ?, estado = ? WHERE id = ?");
-            $stmt->execute([1, 'ticket cerrado', $ticket["id"]]);
-            $success = "Ticket cerrado correctamente";
-            $ticket["es_cerrado"] = 1;
-            $ticket["estado"] = 'ticket cerrado';
+            // Cuando se cierra, es obligatorio un comentario
+            $comentario_cierre = trim($_POST["comentario_cierre"] ?? "");
+            
+            if (empty($comentario_cierre)) {
+                $error = "Debes escribir un comentario antes de cerrar el ticket";
+            } else {
+                // Actualizar estado a "ticket cerrado"
+                $stmt = $conexion->prepare("UPDATE tickets SET es_cerrado = ?, estado = ? WHERE id = ?");
+                $stmt->execute([1, 'ticket cerrado', $ticket["id"]]);
+                
+                // Agregar comentario de cierre con tipo especial
+                $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario, tipo_comentario) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$ticket["id"], $_SESSION["user_id"], $comentario_cierre, 'cierre']);
+                
+                $success = "Ticket cerrado correctamente";
+                $ticket["es_cerrado"] = 1;
+                $ticket["estado"] = 'ticket cerrado';
+                
+                // Recargar comentarios
+                $stmt = $conexion->prepare("
+                    SELECT c.*, u.username, 
+                           COALESCE(um.username, '') as usuario_modifico_nombre
+                    FROM comentarios_tickets c
+                    JOIN users u ON c.usuario_id = u.id
+                    LEFT JOIN users um ON c.usuario_modificado_por = um.id
+                    WHERE c.ticket_id = ?
+                    ORDER BY c.fecha ASC
+                ");
+                $stmt->execute([$ticket["id"]]);
+                $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
         } else {
             // Cuando se reabre, volver a "sin abrir"
             $stmt = $conexion->prepare("UPDATE tickets SET es_cerrado = ?, estado = ? WHERE id = ?");
@@ -211,7 +236,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_comentario_id"]
                     JOIN users u ON c.usuario_id = u.id
                     LEFT JOIN users um ON c.usuario_modificado_por = um.id
                     WHERE c.ticket_id = ? 
-                    ORDER BY c.fecha_comentario ASC
+                    ORDER BY c.fecha ASC
                 ");
                 $stmt->execute([$ticket["id"]]);
                 $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -256,25 +281,30 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
 ?>
 
 <!DOCTYPE html>
-<!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/dark-mode.css" rel="stylesheet">
     <title>Ticket <?php echo htmlspecialchars($ticket["ticket_number"]); ?></title>
     <style>
-        .ticket-header { background-color: #f8f9fa; border-left: 5px solid #0d6efd; }
-        .comentario { border-left: 3px solid #e9ecef; margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 4px; position: relative; }
-        .comentario-autor { font-weight: bold; color: #0d6efd; }
-        .comentario-fecha { font-size: 0.85em; color: #6c757d; }
-        .comentario-modificado { font-size: 0.8em; color: #e74c3c; margin-top: 5px; }
         .btn-editar-com { font-size: 0.8em; padding: 0.25rem 0.5rem; }
-        .comentario-edit-form { display: none; margin-top: 10px; }
     </style>
+    <script>
+        // Aplicar tema al cargar la página ANTES de mostrar contenido
+        (function() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'enabled') {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-bs-theme');
+            }
+        })();
+    </script>
 </head>
 <body>
-    <?php include 'includes/navbar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     
     <div class="container mt-4">
         <?php if (!empty($error)): ?>
@@ -373,17 +403,17 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                 
                                 <div class="row mt-3">
                                     <div class="col-md-12">
-                                        <form method="POST" style="display: inline;">
-                                            <?php if ($ticket["es_cerrado"] == 0): ?>
-                                                <button type="submit" name="cerrar_ticket" value="cerrar" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas cerrar este ticket?');">
-                                                    ✓ Cerrar Ticket
-                                                </button>
-                                            <?php else: ?>
+                                        <?php if ($ticket["es_cerrado"] == 0): ?>
+                                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalCerrarTicket">
+                                                ✓ Cerrar Ticket
+                                            </button>
+                                        <?php else: ?>
+                                            <form method="POST" style="display: inline;">
                                                 <button type="submit" name="cerrar_ticket" value="reabrir" class="btn btn-warning">
                                                     ↺ Reabrir Ticket
                                                 </button>
-                                            <?php endif; ?>
-                                        </form>
+                                            </form>
+                                        <?php endif; ?>
                                         
                                         <!-- Botón de cancelación -->
                                         <?php if (empty($ticket["estado_cancelacion"])): ?>
@@ -421,11 +451,11 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                             <p class="text-muted">No hay comentarios aún</p>
                         <?php else: ?>
                             <?php foreach ($comentarios as $com): ?>
-                                <div class="comentario" id="comentario-<?php echo $com['id']; ?>">
+                                <div class="comentario <?php echo ($com['tipo_comentario'] === 'cierre') ? 'comentario-cierre' : ''; ?>" id="comentario-<?php echo $com['id']; ?>">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div>
                                             <div class="comentario-autor"><?php echo htmlspecialchars($com["username"]); ?></div>
-                                            <div class="comentario-fecha"><?php echo formatearFechaHora($com["fecha_comentario"]); ?></div>
+                                            <div class="comentario-fecha"><?php echo formatearFechaHora($com["fecha"]); ?></div>
                                             
                                             <?php if (!empty($com["fecha_modificacion"])): ?>
                                                 <div class="comentario-modificado">
@@ -437,7 +467,6 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                             <button class="btn btn-sm btn-outline-primary btn-editar-com" onclick="editarComentario(<?php echo $com['id']; ?>)">Editar</button>
                                         <?php endif; ?>
                                     </div>
-                                    
                                     <div class="mt-2" id="texto-comentario-<?php echo $com['id']; ?>">
                                         <?php echo nl2br(htmlspecialchars($com["comentario"])); ?>
                                     </div>
@@ -486,6 +515,33 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             document.getElementById('form-editar-' + id).style.display = 'none';
         }
     </script>
+
+    <!-- Modal de Cierre de Ticket -->
+    <div class="modal fade" id="modalCerrarTicket" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">✓ Cerrar Ticket</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="">
+                    <div class="modal-body">
+                        <p class="text-muted"><strong>⚠️ Antes de cerrar, debes escribir un comentario explicando cómo se resolvió el ticket:</strong></p>
+                        
+                        <div class="mb-3">
+                            <label for="comentarioCierre" class="form-label"><strong>Comentario de Cierre <span class="text-danger">*</span></strong></label>
+                            <textarea class="form-control" id="comentarioCierre" name="comentario_cierre" rows="5" placeholder="Describe cómo se resolvió el problema, qué acciones se tomaron, etc." required></textarea>
+                            <small class="text-muted">Este comentario será visible para todos y marcará el cierre del ticket</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" name="cerrar_ticket" value="cerrar" class="btn btn-danger">Cerrar Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal de Cancelación -->
     <div class="modal fade" id="modalCancelar" tabindex="-1">

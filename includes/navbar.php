@@ -25,17 +25,31 @@ require_once 'config.php';
                     <a class="nav-link" href="tickets.php">Tickets</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="register.php">Agregar Usuario</a>
+                    <a class="nav-link" href="activos.php">Activos</a>
                 </li>
                 <?php endif; ?>
                 
                 <?php if (($_SESSION["role"] ?? "") === "admin"): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="usuarios.php">Gestionar Usuarios</a>
+                    <a class="nav-link" href="usuarios.php">Usuarios</a>
+                </li>
+                <?php endif; ?>
+                
+                <?php if (in_array($_SESSION["role"] ?? "viewer", $permisos)): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="reportes.php">📊 Reportes</a>
                 </li>
                 <?php endif; ?>
             </ul>
             <ul class="navbar-nav ms-auto">
+                <?php 
+                $permisos = ['tisupport', 'admin'];
+                if (in_array($_SESSION["role"] ?? "viewer", $permisos)): 
+                ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="mi_contrasena.php">🔐 Mi Contraseña</a>
+                </li>
+                <?php endif; ?>
                 <li class="nav-item">
                     <button class="btn btn-outline-light btn-sm me-2" id="darkModeToggle" onclick="toggleDarkMode()">
                         🌙 Oscuro

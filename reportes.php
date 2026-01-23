@@ -32,15 +32,26 @@ $error = "";
 ?>
 
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/dark-mode.css" rel="stylesheet">
     <title>Reportes de Tickets</title>
+    <script>
+        (function() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'enabled') {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-bs-theme');
+            }
+        })();
+    </script>
 </head>
 <body>
-    <?php include 'includes/navbar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     
     <div class="container mt-5">
         <div class="row">
@@ -136,5 +147,19 @@ $error = "";
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Validar fechas
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const fechaDesde = document.querySelector('[name="fecha_desde"]').value;
+            const fechaHasta = document.querySelector('[name="fecha_hasta"]').value;
+            
+            if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
+                e.preventDefault();
+                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
+                return false;
+            }
+        });
+    </script>
 </body>
 </html>

@@ -59,6 +59,7 @@ $error = "";
 $tickets = [];
 $busqueda = $_GET["buscar"] ?? "";
 $estado_filtro = $_GET["estado"] ?? "";
+$mis_tickets = $_GET["mis_tickets"] ?? "";
 $pagina = max(1, (int)($_GET["pagina"] ?? 1));
 $orden = $_GET["orden"] ?? "fecha";
 $direccion = $_GET["dir"] ?? "DESC";
@@ -114,6 +115,12 @@ try {
     $where = "es_cerrado = 0";
     $params = [];
     
+    // Filtro para mis tickets
+    if (!empty($mis_tickets) && $mis_tickets === "1") {
+        $where .= " AND responsable = ?";
+        $params[] = $_SESSION["user_id"];
+    }
+    
     if (!empty($estado_filtro)) {
         $where .= " AND estado = ?";
         $params[] = $estado_filtro;
@@ -162,22 +169,34 @@ function getEstadoColor($estado) {
 ?>
 
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/dark-mode.css" rel="stylesheet">
     <title>Tickets</title>
     <style>
         .ticket-list-row { border-bottom: 1px solid #dee2e6; padding: 15px 0; cursor: pointer; transition: background-color 0.2s; }
         .ticket-list-row:hover { background-color: #f8f9fa; }
         [data-bs-theme="dark"] .ticket-list-row:hover { background-color: #2d3035; }
+        .ticket-list-row input[type="checkbox"] { cursor: pointer; }
         .table-responsive { margin: 0 -12px; padding: 0 12px; }
         .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
     </style>
+    <script>
+        (function() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'enabled') {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-bs-theme');
+            }
+        })();
+    </script>
 </head>
 <body>
-    <?php include 'includes/navbar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     
     <!-- Toast Notification -->
     <div class="toast-container" id="toastContainer"></div>
@@ -217,13 +236,13 @@ function getEstadoColor($estado) {
         
         <!-- Botones de bandeja por estado -->
         <div class="mb-3">
-            <a href="tickets.php" class="btn <?php echo empty($estado_filtro) ? 'btn-primary' : 'btn-outline-primary'; ?>" title="Todos los tickets abiertos">Todos</a>
+            <a href="tickets.php" class="btn <?php echo empty($estado_filtro) && empty($mis_tickets) ? 'btn-primary' : 'btn-outline-primary'; ?>" title="Todos los tickets abiertos">Todos</a>
+            <a href="tickets.php?mis_tickets=1<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo !empty($mis_tickets) ? 'btn-info' : 'btn-outline-info'; ?>">Mis Tickets</a>
             <a href="tickets.php?estado=sin%20abrir<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'sin abrir' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">Sin abrir (<?php echo $conteos_estado['sin abrir']; ?>)</a>
             <a href="tickets.php?estado=en%20conocimiento<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'en conocimiento' ? 'btn-info' : 'btn-outline-info'; ?>">En conocimiento (<?php echo $conteos_estado['en conocimiento']; ?>)</a>
             <a href="tickets.php?estado=en%20proceso<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'en proceso' ? 'btn-warning' : 'btn-outline-warning'; ?>">En proceso (<?php echo $conteos_estado['en proceso']; ?>)</a>
             <a href="tickets.php?estado=pendiente%20de%20cierre<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'pendiente de cierre' ? 'btn-danger' : 'btn-outline-danger'; ?>">Pendiente de cierre (<?php echo $conteos_estado['pendiente de cierre']; ?>)</a>
             <a href="tickets_cerrados.php" class="btn btn-outline-success">Tickets Cerrados (<?php echo $conteo_cerrados; ?>)</a>
-            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalReportes">📊 Reportes</button>
             <a href="crear_ticket.php" class="btn btn-success">+ Crear Nuevo Ticket</a>
         </div>
         
@@ -250,8 +269,8 @@ function getEstadoColor($estado) {
                         </thead>
                         <tbody>
                             <?php foreach ($tickets as $ticket): ?>
-                            <tr class="ticket-list-row">
-                                <td><input type="checkbox" class="ticket-checkbox" value="<?php echo $ticket['id']; ?>"></td>
+                            <tr class="ticket-list-row" onclick="if(event.target.tagName !== 'INPUT') window.location='ver_ticket.php?id=<?php echo htmlspecialchars($ticket["id"]); ?>'">
+                                <td onclick="event.stopPropagation();"><input type="checkbox" class="ticket-checkbox" value="<?php echo $ticket['id']; ?>"></td>
                                 <td><strong><?php echo htmlspecialchars($ticket["ticket_number"]); ?></strong></td>
                                 <td><?php echo htmlspecialchars($ticket["titulo"]); ?></td>
                                 <td><span class="badge bg-<?php echo getEstadoColor($ticket["estado"]); ?>"><?php echo ucfirst(htmlspecialchars($ticket["estado"])); ?></span></td>
@@ -269,7 +288,7 @@ function getEstadoColor($estado) {
                                     ?>
                                 </td>
                                 <td><?php echo formatearFecha($ticket["fecha_creacion"]); ?></td>
-                                <td>
+                                <td onclick="event.stopPropagation();">
                                     <a href="ver_ticket.php?id=<?php echo htmlspecialchars($ticket["id"]); ?>" class="btn btn-sm btn-primary">Ver</a>
                                 </td>
                             </tr>
@@ -308,91 +327,6 @@ function getEstadoColor($estado) {
             </ul>
         </nav>
         <?php endif; ?>
-    </div>
-    
-    <!-- Obtener lista de solicitantes únicos para modal -->
-    <?php
-    try {
-        $stmt = $conexion->query("SELECT DISTINCT nombre_solicitante FROM tickets ORDER BY nombre_solicitante");
-        $solicitantes_reporte = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    } catch (PDOException $e) {
-        $solicitantes_reporte = [];
-    }
-    ?>
-    
-    <!-- Modal de Reportes -->
-    <div class="modal fade" id="modalReportes" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Descargar Reporte de Tickets</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="generar_reporte_pdf.php" target="_blank">
-                    <div class="modal-body">
-                        <h6 class="mb-3">Filtros del Reporte</h6>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="filtro_estado" class="form-label"><strong>Estado del Ticket</strong></label>
-                                <select class="form-select" name="filtro_estado">
-                                    <option value="">-- Todos los estados --</option>
-                                    <option value="sin abrir">Sin abrir</option>
-                                    <option value="en conocimiento">En conocimiento</option>
-                                    <option value="en proceso">En proceso</option>
-                                    <option value="pendiente de cierre">Pendiente de cierre</option>
-                                    <option value="ticket cerrado">Ticket Cerrado</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label for="filtro_solicitante" class="form-label"><strong>Solicitante</strong></label>
-                                <select class="form-select" name="filtro_solicitante">
-                                    <option value="">-- Todos los solicitantes --</option>
-                                    <?php foreach ($solicitantes_reporte as $solicitante): ?>
-                                        <option value="<?php echo htmlspecialchars($solicitante); ?>">
-                                            <?php echo htmlspecialchars($solicitante); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="fecha_desde" class="form-label"><strong>Fecha Desde</strong></label>
-                                <input type="date" class="form-control" name="fecha_desde">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="fecha_hasta" class="form-label"><strong>Fecha Hasta</strong></label>
-                                <input type="date" class="form-control" name="fecha_hasta">
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        <h6 class="mb-3">Tipo de Reporte</h6>
-                        
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipo_reporte" value="completo" id="tipo_completo" checked>
-                            <label class="form-check-label" for="tipo_completo">
-                                <strong>Reporte Completo</strong> - Incluye detalles y comentarios
-                            </label>
-                        </div>
-                        
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="tipo_reporte" value="resumen" id="tipo_resumen">
-                            <label class="form-check-label" for="tipo_resumen">
-                                <strong>Reporte Resumido</strong> - Solo información principal
-                            </label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">📄 Generar Reporte</button>
-                    </div>
-                </form>
-            </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
@@ -527,16 +461,4 @@ function getEstadoColor($estado) {
                 toastElement.remove();
             });
         }
-        
-        // Validar fechas en modal de reportes
-        document.querySelectorAll('#modalReportes form')[0]?.addEventListener('submit', function(e) {
-            const fechaDesde = document.querySelector('[name="fecha_desde"]').value;
-            const fechaHasta = document.querySelector('[name="fecha_hasta"]').value;
-            
-            if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
-                e.preventDefault();
-                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
-                return false;
-            }
-        });
     </script>

@@ -38,7 +38,7 @@ require_once 'includes/login.php';
                                 <input type="password" class="form-control" id="password" name="password" required placeholder="Ingrese su contraseña">
                             </div>
                             
-                            <button type="submit" class="btn btn-primary w-100">Enviar</button>
+                            <button type="submit" class="btn btn-primary w-100">Iniciar sesión</button>
                         </form>
                     </div>
                 </div>
