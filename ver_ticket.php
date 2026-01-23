@@ -90,8 +90,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nueva_estado"])) {
 // Cambiar responsable
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nuevo_responsable"])) {
     try {
-        $nuevo_responsable = $_POST["nuevo_responsable"] === "" ? null : $_POST["nuevo_responsable"];
-        $responsable_anterior = $ticket["responsable"];
+        // Validación: prevenir cambio de responsable en tickets cerrados para no-admins
+        if ($ticket["estado"] === "ticket cerrado" && $_SESSION["role"] !== "admin") {
+            $error = "No puedes cambiar el responsable de un ticket cerrado. Solo administradores pueden hacerlo.";
+        } else {
+            $nuevo_responsable = $_POST["nuevo_responsable"] === "" ? null : $_POST["nuevo_responsable"];
+            $responsable_anterior = $ticket["responsable"];
         
         $stmt = $conexion->prepare("UPDATE tickets SET responsable = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
         $stmt->execute([$nuevo_responsable, $ticket["id"]]);
@@ -130,6 +134,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nuevo_responsable"])) 
         ");
         $stmt->execute([$ticket["id"]]);
         $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
     } catch (PDOException $e) {
         $error = "Error al actualizar responsable: " . $e->getMessage();
     }
@@ -380,7 +385,12 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                     
                                     <div class="col-md-4">
                                         <label class="form-label d-block"><strong>Responsable:</strong></label>
-                                        <select name="nuevo_responsable" class="form-select form-select-sm select-tema" onchange="cambiarResponsable(this.value);">
+                                        <?php 
+                                        $es_cerrado = $ticket["estado"] === "ticket cerrado";
+                                        $es_admin = $_SESSION["role"] === "admin";
+                                        $responsable_deshabilitado = $es_cerrado && !$es_admin;
+                                        ?>
+                                        <select name="nuevo_responsable" class="form-select form-select-sm select-tema" onchange="cambiarResponsable(this.value);" <?php echo $responsable_deshabilitado ? "disabled" : ""; ?>>
                                             <option value="">-- Sin asignar --</option>
                                             <?php foreach ($usuarios_soporte as $user): ?>
                                                 <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (int)$ticket["responsable"] === (int)$user["id"] ? "selected" : ""; ?>>
@@ -388,6 +398,9 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <?php if ($responsable_deshabilitado): ?>
+                                            <small class="text-muted d-block mt-2"><i class="bi bi-lock"></i> Campo deshabilitado: solo administradores pueden cambiar responsables en tickets cerrados</small>
+                                        <?php endif; ?>
                                     </div>
                                     
                                     <div class="col-md-4">
