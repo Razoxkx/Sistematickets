@@ -58,21 +58,104 @@ function formatearFecha($fecha) {
     return "$mes $dia $año";
 }
 
-// Función para convertir menciones de tickets y activos en enlaces
+// Función para convertir menciones de tickets, activos y usuarios en enlaces
 function procesarMenciones($texto) {
-    // Primero procesar menciones de tickets (#DCDXXXXXX)
-    $texto = htmlspecialchars($texto);
-    $texto = preg_replace(
+    // Primero procesar las menciones ANTES de escapar HTML
+    
+    // 1. Procesar menciones de procedimientos (#DCD.T0000001)
+    $texto = preg_replace_callback(
+        '/#(DCD\.T\d{7})/i',
+        function($matches) {
+            global $conexion;
+            $id_proc = $matches[1];
+            try {
+                $stmt = $conexion->prepare("SELECT id FROM procedimientos WHERE id_procedimiento = ?");
+                $stmt->execute([$id_proc]);
+                $proc = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($proc) {
+                    return '<<<PROC_' . $proc['id'] . '_' . $id_proc . '>>>';
+                }
+            } catch (Exception $e) {
+                // Si hay error, dejar el texto como está
+            }
+            return $matches[0];
+        },
+        $texto
+    );
+    
+    // 2. Procesar menciones de tickets (#DCDXXXXXX)
+    $texto = preg_replace_callback(
         '/#(DCD\d{6})/i',
-        '<a href="ver_ticket.php?id=$1" class="ticket-mention">$1</a>',
+        function($matches) {
+            return '<<<TICKET_' . $matches[1] . '>>>';
+        },
         $texto
     );
-    // Luego procesar menciones de activos (#AKXXXXXXX)
-    $texto = preg_replace(
+    
+    // 3. Procesar menciones de activos (#AKXXXXXXX)
+    $texto = preg_replace_callback(
         '/#(AK\d{7})/i',
-        '<a href="ver_activo.php?id=$1" class="ticket-mention">$1</a>',
+        function($matches) {
+            return '<<<ACTIVO_' . $matches[1] . '>>>';
+        },
         $texto
     );
+    
+    // 4. Procesar menciones de usuarios (#usuario.nombre)
+    $texto = preg_replace_callback(
+        '/#([a-z0-9._-]+)/i',
+        function($matches) {
+            $usuario = $matches[1];
+            // Evitar que procese usuarios que ya fueron procesados
+            if (preg_match('/^(DCD\.T\d{7}|DCD\d{6}|AK\d{7})$/i', $usuario)) {
+                return $matches[0];
+            }
+            return '<<<USER_' . $usuario . '>>>';
+        },
+        $texto
+    );
+    
+    // Ahora escapar HTML en todo el texto
+    $texto = htmlspecialchars($texto, ENT_QUOTES, 'UTF-8');
+    
+    // Restaurar las menciones procesadas como HTML
+    // Procedimientos
+    $texto = preg_replace_callback(
+        '/&lt;&lt;&lt;PROC_(\d+)_(DCD\.T\d{7})&gt;&gt;&gt;/i',
+        function($matches) {
+            return '<a href="ver_procedimiento.php?id=' . $matches[1] . '" class="procedimiento-mention" style="color: #fd7e14;" title="Ver procedimiento ' . $matches[2] . '"><i class="bi bi-file-earmark-text"></i> ' . $matches[2] . '</a>';
+        },
+        $texto
+    );
+    
+    // Tickets
+    $texto = preg_replace_callback(
+        '/&lt;&lt;&lt;TICKET_(DCD\d{6})&gt;&gt;&gt;/i',
+        function($matches) {
+            return '<a href="ver_ticket.php?id=' . $matches[1] . '" class="ticket-mention" title="Ver ticket ' . $matches[1] . '">' . $matches[1] . '</a>';
+        },
+        $texto
+    );
+    
+    // Activos
+    $texto = preg_replace_callback(
+        '/&lt;&lt;&lt;ACTIVO_(AK\d{7})&gt;&gt;&gt;/i',
+        function($matches) {
+            return '<a href="ver_activo.php?id=' . $matches[1] . '" class="activo-mention" title="Ver activo ' . $matches[1] . '">' . $matches[1] . '</a>';
+        },
+        $texto
+    );
+    
+    // Usuarios
+    $texto = preg_replace_callback(
+        '/&lt;&lt;&lt;USER_([a-z0-9._-]+)&gt;&gt;&gt;/i',
+        function($matches) {
+            $usuario = $matches[1];
+            return '<a href="perfil_usuario.php?username=' . urlencode($usuario) . '" class="usuario-mention" title="Ver perfil de ' . $usuario . '">#' . $usuario . '</a>';
+        },
+        $texto
+    );
+    
     return $texto;
 }
 

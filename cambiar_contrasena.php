@@ -79,8 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 
                 $success = "Contraseña cambida exitosamente. Redireccionando...";
-                // Redirigir al dashboard después de 2 segundos
-                header("Refresh: 2; URL=dashboard.php");
+                // No usar header Refresh, la redirección se maneja con JavaScript
             }
         } catch (PDOException $e) {
             $error = "Error al cambiar contraseña: " . $e->getMessage();
@@ -97,6 +96,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Cambiar Contraseña</title>
+    <style>
+        body {
+            transition: opacity 0.6s ease-out;
+        }
+        body.fade-out {
+            opacity: 0;
+        }
+    </style>
     <script>
         (function() {
             const darkMode = localStorage.getItem('darkMode');
@@ -109,7 +116,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </script>
 </head>
 <body>
-    <?php include 'includes/sidebar.php'; ?>
     <div class="container mt-5 mb-5">
         <div class="row justify-content-center">
             <div class="col-md-7">
@@ -166,5 +172,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Detectar si hubo un cambio exitoso de contraseña
+        const successAlert = document.querySelector('.alert-success');
+        if (successAlert) {
+            // Esperar un poco para que se muestre el mensaje
+            setTimeout(() => {
+                // Agregar la clase para la animación de desvanecimiento
+                document.body.classList.add('fade-out');
+                // Redirigir después de que termine la animación
+                setTimeout(() => {
+                    window.location.href = 'dashboard.php';
+                }, 600);
+            }, 500);
+        }
+    </script>
 </body>
 </html>

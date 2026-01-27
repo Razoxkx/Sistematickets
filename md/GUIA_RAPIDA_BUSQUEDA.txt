@@ -1,0 +1,177 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    🎯 GUÍA RÁPIDA: PERFILES Y BÚSQUEDA
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          📍 ACCESO RÁPIDO                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  📋 MI PERFIL                          🔍 BÚSQUEDA GLOBAL                  │
+│  ├─ Navbar: Click nombre → Mi Perfil  ├─ Sidebar: Búsqueda                │
+│  ├─ Sidebar: Mi Perfil                ├─ URL: busqueda_global.php          │
+│  └─ URL: perfil_usuario.php           └─ Busca: usuarios, tickets, activos│
+│                                                                             │
+│  👥 PERFIL DE OTRO USUARIO                                                │
+│  ├─ Búsqueda: #nombre.usuario                                             │
+│  ├─ Resultado: Click en usuario                                            │
+│  └─ URL: perfil_usuario.php?username=nombre                               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        🔎 PATRONES DE BÚSQUEDA                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  PATRÓN              EJEMPLO              RESULTADO                        │
+│  ─────────────────────────────────────────────────────────────────────────│
+│                                                                             │
+│  Búsqueda normal     "servidor"           Busca en títulos, descripción   │
+│                     "problema"           de tickets y activos             │
+│                                                                             │
+│  Número ticket      "#DCD000001"          Ticket específico               │
+│                    "#DCD000042"          (también sin #)                 │
+│                                                                             │
+│  Código activo      "AK790001"           Activo específico               │
+│                    "AK790512"           (detecta automáticamente)        │
+│                                                                             │
+│  Nombre usuario     "#pablo.orellana"    Perfil + tickets + activos      │
+│                    "#nombre.usuario"    del usuario                      │
+│                                                                             │
+│  Solicitante        "Juan García"        Tickets reportados por persona   │
+│                    "María López"                                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      📄 SECCIONES DEL PERFIL                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─ TICKETS CREADOS                                                        │
+│  │  • Todos los tickets que creó el usuario (abiertos)                    │
+│  │  • Info: Número, título, estado, responsable, fecha                   │
+│  │  • Buscador: Por número, título o descripción                         │
+│  │  • Paginación: 9 tickets por página                                   │
+│  │                                                                         │
+│  ├─ MENCIONADO EN                                                          │
+│  │  • Tickets donde fue mencionado en comentarios (@usuario)              │
+│  │  • Info: Número, título, estado, solicitante, fecha                   │
+│  │  • Buscador: Filtra dentro de tickets con menciones                   │
+│  │  • Paginación: 9 tickets por página                                   │
+│  │                                                                         │
+│  └─ ACTIVOS                                                                │
+│     • Todos los activos asignados al usuario                              │
+│     • Info: RFK, tipo, fabricante, ubicación                              │
+│     • Buscador: Por nombre o número de activo                             │
+│     • Paginación: 9 activos por página                                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        📋 EJEMPLOS PRÁCTICOS                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1️⃣  VER TODOS LOS TICKETS DE PABLO                                        │
+│     ├─ Ir a: Sidebar → Búsqueda                                           │
+│     ├─ Escribir: #pablo.orellana                                          │
+│     ├─ Click: Buscar                                                       │
+│     └─ Resultado: Perfil con 3 secciones + tickets                        │
+│                                                                             │
+│  2️⃣  BUSCAR UN ACTIVO ESPECÍFICO                                          │
+│     ├─ Ir a: Sidebar → Búsqueda                                           │
+│     ├─ Escribir: AK790001                                                 │
+│     ├─ Click: Buscar                                                       │
+│     └─ Resultado: Tarjeta del activo → Click para detalles                │
+│                                                                             │
+│  3️⃣  VER TICKET ESPECÍFICO                                                │
+│     ├─ Ir a: Sidebar → Búsqueda                                           │
+│     ├─ Escribir: DCD000042                                                │
+│     ├─ Click: Buscar                                                       │
+│     └─ Resultado: Tarjeta del ticket → Click para detalles                │
+│                                                                             │
+│  4️⃣  BUSCAR TICKETS DE UN USUARIO EN EL LISTADO                           │
+│     ├─ Ir a: Tickets                                                       │
+│     ├─ Barra de búsqueda: Escribir #pablo.orellana                        │
+│     ├─ Click: Buscar                                                       │
+│     └─ Resultado: Solo tickets del usuario                                │
+│                                                                             │
+│  5️⃣  BUSCAR ACTIVO POR CÓDIGO EN LISTADO                                  │
+│     ├─ Ir a: Activos                                                       │
+│     ├─ Barra de búsqueda: Escribir AK790001                               │
+│     ├─ Click: Buscar                                                       │
+│     └─ Resultado: Solo ese activo                                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         🎨 INTERFAZ Y COLORES                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ELEMENTO           COLOR            SIGNIFICADO                          │
+│  ──────────────────────────────────────────────────────────────────────────│
+│  Badge Ticket       Azul (#0d6efd)  Número de ticket (DCD000001)         │
+│  Badge Activo       Verde (#198754) Número de activo (AK790001)          │
+│  Badge Usuario      Cyan (#0dcaf0)  Nombre de usuario                     │
+│  Estado Abierto     Verde            Ticket sin cerrar                     │
+│  Estado Cerrado     Gris             Ticket cerrado                        │
+│  Fallas Activas     Alerta amarilla  Problemas conocidos                  │
+│                                                                             │
+│  💡 En Dark Mode todos los colores se adaptan automáticamente              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          ⌨️ ATAJOS ÚTILES                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ACCIÓN                      ATAJO                                         │
+│  ──────────────────────────────────────────────────────────────────────────│
+│  Mi Perfil                   Navbar dropdown → Mi Perfil                  │
+│  Búsqueda Global             Sidebar → Búsqueda                           │
+│  Búsqueda de Usuario         Escribe: #usuario                            │
+│  Búsqueda de Activo          Escribe: AK79XXXX                            │
+│  Búsqueda de Ticket          Escribe: #DCD000001                          │
+│  Limpiar Búsqueda            Click en "Limpiar" o dejar vacío              │
+│  Cambiar Sección (Perfil)    Click en pestañas (Creados, Mencionado, etc) │
+│  Dark Mode                   Sidebar → Oscuro/Claro                       │
+│  Página Anterior             ← Anterior en paginación                     │
+│  Siguiente Página            Siguiente → en paginación                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       ❓ PREGUNTAS FRECUENTES                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  P: ¿Cómo busco tickets de alguien?                                       │
+│  R: Escribe #nombre.usuario en cualquier buscador                         │
+│                                                                             │
+│  P: ¿Dónde encuentro mis activos?                                         │
+│  R: Perfil → Sección "Activos" o Sidebar → Activos                        │
+│                                                                             │
+│  P: ¿Qué significa "Mencionado En"?                                       │
+│  R: Tickets donde aparece tu nombre en comentarios (@username)            │
+│                                                                             │
+│  P: ¿Cómo busco por código de activo?                                     │
+│  R: Escribe directamente: AK790001 (detecta automáticamente)              │
+│                                                                             │
+│  P: ¿Puedo ver el perfil de otro usuario?                                 │
+│  R: Sí, busca #otro.usuario → Click en su perfil                          │
+│                                                                             │
+│  P: ¿Funciona en móvil?                                                   │
+│  R: ✓ Completamente responsive en cualquier dispositivo                   │
+│                                                                             │
+│  P: ¿Hay límite de resultados?                                            │
+│  R: 9 items por página, con paginación para ver más                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+                              📚 DOCUMENTACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+Para más detalles, consulta:
+  • GUIA_PERFILES_BUSQUEDA.md → Guía completa con ejemplos
+  • RESUMEN_PERFILES_BUSQUEDA.md → Cambios técnicos implementados
+
+Última actualización: 26 de enero de 2026
+═══════════════════════════════════════════════════════════════════════════════

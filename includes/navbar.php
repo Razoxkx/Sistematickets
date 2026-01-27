@@ -44,7 +44,7 @@ require_once 'config.php';
                 </li>
                 <?php endif; ?>
             </ul>
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto d-flex align-items-center">
                 <?php 
                 $permisos = ['tisupport', 'admin'];
                 if (in_array($_SESSION["role"] ?? "viewer", $permisos)): 
@@ -53,19 +53,30 @@ require_once 'config.php';
                     <a class="nav-link" href="mi_contrasena.php"><i class="bi bi-key"></i> Mi Contraseña</a>
                 </li>
                 <?php endif; ?>
-                <li class="nav-item">
-                    <button class="btn btn-outline-light btn-sm me-2" id="darkModeToggle" onclick="toggleDarkMode()">
-                        <i class="bi bi-moon"></i> Oscuro
+                <li class="nav-item me-2">
+                    <button class="btn btn-outline-light btn-sm" id="darkModeToggle" onclick="toggleDarkMode()" style="padding: 0.35rem 0.6rem;">
+                        <i class="bi bi-moon"></i>
                     </button>
                 </li>
-                <li class="nav-item">
-                    <span class="navbar-text me-3">
-                        <strong><?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?></strong>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="gap: 0.5rem;">
+                        <i class="bi bi-person-circle"></i>
+                        <span><?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?></span>
                         <span class="badge bg-info"><?php echo traducirRol($_SESSION["role"] ?? "viewer"); ?></span>
-                    </span>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link btn btn-danger btn-sm text-white" href="index.php?logout=1"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <li>
+                            <a class="dropdown-item" href="perfil_usuario.php?username=<?php echo urlencode($_SESSION["username"]); ?>">
+                                <i class="bi bi-person"></i> Mi Perfil
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="index.php?logout=1">
+                                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                            </a>
+                        </li>
+                    </ul>
                 </li>
             </ul>
         </div>

@@ -55,15 +55,26 @@ try {
     $params = [];
     
     if (!empty($busqueda)) {
-        $where .= " AND (rfk LIKE ? OR titulo LIKE ? OR descripcion LIKE ? OR propietario LIKE ? OR ubicacion LIKE ? OR tipo LIKE ? OR fabricante LIKE ?)";
-        $busqueda_param = '%' . $busqueda . '%';
-        $params[] = $busqueda_param;
-        $params[] = $busqueda_param;
-        $params[] = $busqueda_param;
-        $params[] = $busqueda_param;
-        $params[] = $busqueda_param;
-        $params[] = $busqueda_param;
-        $params[] = $busqueda_param;
+        // Detectar si es una búsqueda directa de activo (AK79XXXX)
+        $es_numero_activo = preg_match('/^AK\d{5,7}$/i', $busqueda);
+        
+        if ($es_numero_activo) {
+            // Búsqueda directa por número de activo (RFK)
+            $where .= " AND a.rfk LIKE ?";
+            $busqueda_param = '%' . strtoupper($busqueda) . '%';
+            $params[] = $busqueda_param;
+        } else {
+            // Búsqueda normal en múltiples campos
+            $where .= " AND (a.rfk LIKE ? OR a.titulo LIKE ? OR a.descripcion LIKE ? OR a.propietario LIKE ? OR a.ubicacion LIKE ? OR a.tipo LIKE ? OR a.fabricante LIKE ?)";
+            $busqueda_param = '%' . $busqueda . '%';
+            $params[] = $busqueda_param;
+            $params[] = $busqueda_param;
+            $params[] = $busqueda_param;
+            $params[] = $busqueda_param;
+            $params[] = $busqueda_param;
+            $params[] = $busqueda_param;
+            $params[] = $busqueda_param;
+        }
     }
     
     $stmt_count = $conexion->prepare("SELECT COUNT(*) as total FROM activos WHERE " . $where);
@@ -122,19 +133,16 @@ try {
         <!-- Búsqueda -->
         <div class="card shadow mb-4">
             <div class="card-body">
-                <form method="GET" class="row g-2">
+                <div class="row g-2">
                     <div class="col-md-8">
-                        <input type="text" name="buscar" class="form-control" placeholder="Buscar por RFK, título, tipo, fabricante, ubicación o propietario..." value="<?php echo htmlspecialchars($busqueda); ?>">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                        <input type="text" id="searchActivos" class="form-control" placeholder="Buscar por RFK, título, tipo, fabricante, ubicación o propietario..." value="<?php echo htmlspecialchars($busqueda); ?>">
                     </div>
                     <div class="col-md-2">
                         <?php if (!empty($busqueda)): ?>
                             <a href="activos.php" class="btn btn-secondary w-100">Limpiar</a>
                         <?php endif; ?>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
         
@@ -260,6 +268,9 @@ try {
                     <hr>
                     <h6>Descripción</h6>
                     <p id="modalDescripcion"></p>
+                    <hr>
+                    <h6>Mencionado En Tickets</h6>
+                    <div id="modalTicketsMencionados"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -282,7 +293,76 @@ try {
             document.getElementById('modalFecha').textContent = activo.fecha_adquisicion || 'N/A';
             document.getElementById('modalDescripcion').textContent = activo.descripcion || 'Sin descripción';
             document.getElementById('modalEditBtn').href = 'editar_activo.php?id=' + activo.id;
+            
+            // Cargar tickets mencionados
+            cargarTicketsMencionados(activo.rfk);
         }
+        
+        function cargarTicketsMencionados(rfk) {
+            const contenedor = document.getElementById('modalTicketsMencionados');
+            contenedor.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Cargando...</span></div>';
+            
+            fetch('api_ticket.php?action=obtener_tickets_por_activo&rfk=' + encodeURIComponent(rfk))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.tickets && data.tickets.length > 0) {
+                        let html = '<div class="row g-2">';
+                        data.tickets.forEach(ticket => {
+                            const estado = ticket.es_cerrado ? 'Cerrado' : ticket.estado;
+                            const colorEstado = ticket.es_cerrado ? 'secondary' : 'success';
+                            html += `
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                                        <div>
+                                            <a href="ver_ticket.php?id=${encodeURIComponent(ticket.ticket_number)}" class="badge bg-primary text-decoration-none" style="font-size: 0.9rem;">
+                                                ${escapeHtml(ticket.ticket_number)}
+                                            </a>
+                                            <span class="ms-2">${escapeHtml(ticket.titulo.substring(0, 50))}</span>
+                                            ${ticket.titulo.length > 50 ? '...' : ''}
+                                        </div>
+                                        <span class="badge bg-${colorEstado}">${escapeHtml(estado)}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        contenedor.innerHTML = html;
+                    } else {
+                        contenedor.innerHTML = '<div class="alert alert-info small mb-0">Este activo no ha sido mencionado en ningún ticket abierto.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    contenedor.innerHTML = '<div class="alert alert-danger small mb-0">Error al cargar los tickets.</div>';
+                });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Real-time search
+        let searchTimeout;
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchActivos');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    clearTimeout(searchTimeout);
+                    const query = e.target.value.trim();
+                    searchTimeout = setTimeout(() => {
+                        const url = new URL(window.location);
+                        if (query) {
+                            url.searchParams.set('buscar', query);
+                        } else {
+                            url.searchParams.delete('buscar');
+                        }
+                        window.location.search = url.search;
+                    }, 500);
+                });
+            }
+        });
     </script>
 </body>
 </html>

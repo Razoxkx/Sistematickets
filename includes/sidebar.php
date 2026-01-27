@@ -262,8 +262,22 @@ require_once 'config.php';
 
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <div class="sidebar-logo">Mi App</div>
-        <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+        <div class="sidebar-logo">
+            <div class="user-info" style="margin: 0; gap: 5px;">
+                <div class="user-name" title="<?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>">
+                    <?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>
+                </div>
+                <div class="user-role" style="font-size: 10px;">
+                    <?php echo traducirRol($_SESSION["role"] ?? "viewer"); ?>
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="sidebar-toggle" onclick="toggleDarkMode()" title="Cambiar tema" style="padding: 6px 8px;">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
+            <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+        </div>
     </div>
 
     <ul class="sidebar-nav">
@@ -293,18 +307,25 @@ require_once 'config.php';
         </li>
 
         <li class="sidebar-nav-item">
+            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'procedimientos.php' || basename($_SERVER['PHP_SELF']) === 'ver_procedimiento.php' || basename($_SERVER['PHP_SELF']) === 'crear_procedimiento.php') ? 'active' : ''; ?>" href="procedimientos.php" title="Procedimientos">
+                <span class="sidebar-nav-icon"><i class="bi bi-file-earmark-text"></i></span>
+                <span class="sidebar-nav-text">Procedimientos</span>
+            </a>
+        </li>
+
+        <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'reportes.php') ? 'active' : ''; ?>" href="reportes.php" title="Reportes">
                 <span class="sidebar-nav-icon"><i class="bi bi-bar-chart"></i></span>
                 <span class="sidebar-nav-text">Reportes</span>
             </a>
         </li>
-
-        <li class="sidebar-nav-item">
-            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'mi_contrasena.php') ? 'active' : ''; ?>" href="mi_contrasena.php" title="Mi Contraseña">
+            
+        <!-- <li class="sidebar-nav-item">
+            <a class="sidebar-nav-link <//?php echo (basename($_SERVER['PHP_SELF']) === 'mi_contrasena.php') ? 'active' : ''; ?>" href="mi_contrasena.php" title="Mi Contraseña">
                 <span class="sidebar-nav-icon"><i class="bi bi-key"></i></span>
                 <span class="sidebar-nav-text">Mi Contraseña</span>
             </a>
-        </li>
+        </li> -->
         <?php endif; ?>
 
         <?php if (($_SESSION["role"] ?? "") === "admin"): ?>
@@ -314,27 +335,35 @@ require_once 'config.php';
                 <span class="sidebar-nav-text">Usuarios</span>
             </a>
         </li>
+
+        <li class="sidebar-nav-item">
+            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'cuentas_servicio.php' || basename($_SERVER['PHP_SELF']) === 'crear_cuenta_servicio.php' || basename($_SERVER['PHP_SELF']) === 'editar_cuenta_servicio.php') ? 'active' : ''; ?>" href="cuentas_servicio.php" title="Cuentas de Servicio">
+                <span class="sidebar-nav-icon"><i class="bi bi-key-fill"></i></span>
+                <span class="sidebar-nav-text">Cuentas</span>
+            </a>
+        </li>
         <?php endif; ?>
 
         <div class="sidebar-divider"></div>
 
         <li class="sidebar-nav-item">
-            <button class="sidebar-nav-link" onclick="toggleDarkMode()" title="Cambiar tema" style="border: none; cursor: pointer; width: 100%; text-align: left; background: none;">
-                <span class="sidebar-nav-icon" id="themeIcon"><i class="bi bi-moon"></i></span>
-                <span class="sidebar-nav-text" id="themeText">Oscuro</span>
-            </button>
+            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'busqueda_global_v2.php') ? 'active' : ''; ?>" href="busqueda_global_v2.php" title="Búsqueda Global">
+                <span class="sidebar-nav-icon"><i class="bi bi-search"></i></span>
+                <span class="sidebar-nav-text">Búsqueda</span>
+            </a>
         </li>
+
+        <li class="sidebar-nav-item">
+            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'perfil_usuario.php') ? 'active' : ''; ?>" href="perfil_usuario.php?username=<?php echo urlencode($_SESSION['username']); ?>" title="Mi Perfil">
+                <span class="sidebar-nav-icon"><i class="bi bi-person-circle"></i></span>
+                <span class="sidebar-nav-text">Mi Perfil</span>
+            </a>
+        </li>
+
+        <div class="sidebar-divider"></div>
     </ul>
 
     <div class="sidebar-footer">
-        <div class="user-info">
-            <div class="user-name" title="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
-                <?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>
-            </div>
-            <div class="user-role">
-                <?php echo traducirRol($_SESSION["role"] ?? "viewer"); ?>
-            </div>
-        </div>
         <a href="index.php?logout=1" class="sidebar-nav-link" style="border: none;" title="Cerrar sesión">
             <span class="sidebar-nav-icon"><i class="bi bi-box-arrow-right"></i></span>
             <span class="sidebar-nav-text">Salir</span>
@@ -394,13 +423,12 @@ require_once 'config.php';
 
     function updateThemeIcon() {
         const themeIcon = document.getElementById('themeIcon');
-        const themeText = document.getElementById('themeText');
         if (localStorage.getItem('darkMode') === 'enabled') {
-            themeIcon.innerHTML = '<i class="bi bi-sun"></i>';
-            themeText.textContent = 'Claro';
+            themeIcon.className = 'bi bi-sun';
+            themeIcon.parentElement.parentElement.title = 'Cambiar a modo claro';
         } else {
-            themeIcon.innerHTML = '<i class="bi bi-moon"></i>';
-            themeText.textContent = 'Oscuro';
+            themeIcon.className = 'bi bi-moon';
+            themeIcon.parentElement.parentElement.title = 'Cambiar a modo oscuro';
         }
     }
 

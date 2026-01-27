@@ -22,9 +22,9 @@ if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
 $action = $_GET["action"] ?? "";
 $ticket_id = $_POST["ticket_id"] ?? "";
 
-if (empty($action) || empty($ticket_id)) {
+if (empty($action)) {
     http_response_code(400);
-    echo json_encode(["error" => "Parámetros requeridos"]);
+    echo json_encode(["error" => "Acción requerida"]);
     exit();
 }
 
@@ -77,6 +77,26 @@ try {
             }
         }
         
+        // Detectar menciones de procedimientos en el comentario (#DCD.T0000001)
+        if (preg_match_all('/#(DCD\.T\d{7})/i', $comentario, $matches)) {
+            $comentario_id = $conexion->lastInsertId();
+            foreach ($matches[1] as $id_procedimiento) {
+                // Obtener el ID interno del procedimiento
+                $stmt_proc = $conexion->prepare("SELECT id FROM procedimientos WHERE id_procedimiento = ?");
+                $stmt_proc->execute([$id_procedimiento]);
+                $proc = $stmt_proc->fetch(PDO::FETCH_ASSOC);
+                
+                if ($proc) {
+                    // Registrar la mención
+                    $stmt_mencion = $conexion->prepare("
+                        INSERT INTO menciones_procedimientos (procedimiento_id, tipo_mencion, ticket_id, comentario_id)
+                        VALUES (?, 'ticket_comentario', ?, ?)
+                    ");
+                    $stmt_mencion->execute([$proc["id"], $ticket_id, $comentario_id]);
+                }
+            }
+        }
+        
         // Obtener el comentario que se acaba de crear
         $stmt = $conexion->prepare("
             SELECT c.*, u.username, 
@@ -101,8 +121,22 @@ try {
             exit();
         }
         
+        // Obtener estado anterior
+        $stmt = $conexion->prepare("SELECT estado FROM tickets WHERE id = ?");
+        $stmt->execute([$ticket_id]);
+        $ticket_actual = $stmt->fetch(PDO::FETCH_ASSOC);
+        $estado_anterior = $ticket_actual['estado'] ?? null;
+        
+        // Actualizar estado
         $stmt = $conexion->prepare("UPDATE tickets SET estado = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
         $stmt->execute([$nuevo_estado, $ticket_id]);
+        
+        // Registrar en historial
+        $stmt_historial = $conexion->prepare("
+            INSERT INTO historial_estados_tickets (ticket_id, estado_anterior, estado_nuevo, usuario_id)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt_historial->execute([$ticket_id, $estado_anterior, $nuevo_estado, $_SESSION["user_id"]]);
         
         echo json_encode(["success" => true, "estado" => $nuevo_estado]);
     }
@@ -147,6 +181,72 @@ try {
         $comentario_nuevo = $stmt->fetch(PDO::FETCH_ASSOC);
         
         echo json_encode(["success" => true, "responsable_nombre" => $responsable_nombre, "comentario" => $comentario_nuevo]);
+    }
+    
+    // OBTENER TICKETS POR ACTIVO
+    else if ($action === "obtener_tickets_por_activo") {
+        $rfk = $_GET["rfk"] ?? "";
+        
+        if (empty($rfk)) {
+            echo json_encode(["error" => "RFK requerido", "success" => false]);
+            exit();
+        }
+        
+        $stmt = $conexion->prepare("
+            SELECT DISTINCT t.id, t.ticket_number, t.titulo, t.estado, t.es_cerrado
+            FROM tickets t
+            JOIN comentarios_tickets c ON t.id = c.ticket_id
+            WHERE c.comentario LIKE ?
+            ORDER BY t.id DESC
+        ");
+        $stmt->execute(['%' . $rfk . '%']);
+        $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode(["success" => true, "tickets" => $tickets]);
+    }
+    
+    // OBTENER HISTORIAL DE ESTADOS
+    else if ($action === "obtener_historial_estados") {
+        $ticket_id = $_GET["ticket_id"] ?? "";
+        
+        if (empty($ticket_id)) {
+            http_response_code(400);
+            echo json_encode(["error" => "ticket_id requerido", "success" => false]);
+            exit();
+        }
+        
+        try {
+            // Si es un número, buscar por ID; si no, buscar por ticket_number
+            if (is_numeric($ticket_id)) {
+                $stmt = $conexion->prepare("SELECT id FROM tickets WHERE id = ?");
+                $stmt->execute([$ticket_id]);
+            } else {
+                $stmt = $conexion->prepare("SELECT id FROM tickets WHERE ticket_number = ?");
+                $stmt->execute([$ticket_id]);
+            }
+            
+            $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$ticket) {
+                http_response_code(404);
+                echo json_encode(["error" => "Ticket no encontrado", "success" => false]);
+                exit();
+            }
+            
+            $stmt = $conexion->prepare("
+                SELECT h.id, h.ticket_id, h.estado_anterior, h.estado_nuevo, h.fecha_cambio, u.username as usuario_nombre
+                FROM historial_estados_tickets h
+                JOIN users u ON h.usuario_id = u.id
+                WHERE h.ticket_id = ?
+                ORDER BY h.fecha_cambio DESC
+            ");
+            $stmt->execute([$ticket['id']]);
+            $historial = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            echo json_encode(["success" => true, "historial" => $historial]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(["error" => "Error en la base de datos: " . $e->getMessage(), "success" => false]);
+        }
     }
     
     else {

@@ -1,0 +1,131 @@
+# ⚡ Guía Rápida - Cuentas de Servicio
+
+## 🎯 Requisitos
+- ✅ Estar logueado como **admin**
+- ✅ MAMP ejecutándose
+
+## 🚀 En 3 Pasos
+
+### Paso 1: Crear la Tabla (una sola vez)
+```
+1. Abre tu navegador
+2. Ve a: http://localhost:8889/test/crear_tabla_cuentas_servicio.php
+3. Deberías ver: "✅ Tabla cuentas_servicio creada correctamente"
+```
+
+### Paso 2: Acceder al Módulo
+```
+1. Inicia sesión como admin
+2. En el sidebar, haz clic en "Cuentas" (aparece junto a "Usuarios")
+3. ¡Ya estás dentro!
+```
+
+### Paso 3: Crear tu Primera Cuenta
+```
+1. Haz clic en "Nueva Cuenta"
+2. Completa:
+   - Plataforma: Gmail
+   - Correo: tunombre@gmail.com
+   - Contraseña: tu_contraseña_secreta
+   - Descripción: Mi cuenta de correo personal
+3. Haz clic en "Crear Cuenta"
+```
+
+---
+
+## 🔑 Usar la Contraseña Revelada
+
+```
+1. Ve a la lista de cuentas (en "Cuentas")
+2. Encuentra tu cuenta en una tarjeta
+3. Haz clic en el botón "Ojo" (Revelar)
+4. Ingresa TU CONTRASEÑA DE ADMIN
+5. ¡Verás la contraseña revelada!
+6. Haz clic en "Ojo tachado" para ocultarla de nuevo
+```
+
+---
+
+## ✏️ Editar una Cuenta
+
+```
+1. En la lista de cuentas
+2. Haz clic en "Editar"
+3. Cambia lo que quieras
+4. Haz clic en "Guardar Cambios"
+```
+
+---
+
+## ❌ Eliminar una Cuenta
+
+```
+1. En la lista de cuentas
+2. Haz clic en "Eliminar"
+3. Confirma en el modal
+4. ¡Listo!
+```
+
+---
+
+## 🎓 Casos de Uso
+
+### Caso 1: Onboarding de Nuevo Empleado
+1. Crear cuentas de servicios que usará
+2. Compartirle el acceso a cuentas_servicio.php
+3. Él puede revelar contraseñas con su contraseña de admin
+
+### Caso 2: Cambio de Contraseña
+1. Editar la cuenta
+2. Actualizar la contraseña
+3. Guardar cambios
+
+### Caso 3: Auditoría
+1. Ver historial de cuándo se creó/editó cada cuenta
+2. Saber quién creó cada una
+3. Revisar descripción para contexto
+
+---
+
+## ⚠️ Importante
+
+- 🔐 Solo admin puede ver/crear/editar/eliminar cuentas
+- 🔐 Para revelar una contraseña, necesitas tu contraseña de admin
+- 🔐 Las contraseñas están protegidas por defecto (masked)
+- 📝 Cada cambio se registra con timestamp
+- 🚫 No se puede acceder sin estar logueado
+
+---
+
+## 🆘 Problemas Comunes
+
+| Problema | Solución |
+|----------|----------|
+| No veo "Cuentas" en el sidebar | Verifica estar logueado como admin |
+| La tabla no existe | Ejecuta crear_tabla_cuentas_servicio.php |
+| Contraseña no se revela | Verifica ingresar correctamente tu contraseña de admin |
+| Acceso denegado | Necesitas ser admin |
+
+---
+
+## 📱 Funciona en
+
+- ✅ Desktop
+- ✅ Tablet
+- ✅ Mobile
+- ✅ Dark mode
+- ✅ Light mode
+
+---
+
+## 🔗 Enlaces Útiles
+
+- Página principal: `/cuentas_servicio.php`
+- Crear nueva: `/crear_cuenta_servicio.php`
+- Editar: `/editar_cuenta_servicio.php?id=X`
+- Documentación completa: `/md/CUENTAS_SERVICIO.md`
+- Instalación detallada: `/INSTALACION_CUENTAS_SERVICIO.md`
+
+---
+
+**¡Listo para usar!** 🎉

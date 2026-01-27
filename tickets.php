@@ -127,10 +127,30 @@ try {
     }
     
     if (!empty($busqueda)) {
-        $where .= " AND (ticket_number LIKE ? OR titulo LIKE ? OR nombre_solicitante LIKE ?)";
-        $params[] = '%' . $busqueda . '%';
-        $params[] = '%' . $busqueda . '%';
-        $params[] = '%' . $busqueda . '%';
+        // Detectar búsqueda por usuario (#usuario)
+        if (preg_match('/^#([a-z0-9._]+)$/i', $busqueda, $matches)) {
+            $usuario_busca = $matches[1];
+            // Buscar el ID del usuario
+            $stmt_user = $conexion->prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)");
+            $stmt_user->execute([$usuario_busca]);
+            $user_encontrado = $stmt_user->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user_encontrado) {
+                // Buscar tickets donde el usuario es responsable o fue creador
+                $where .= " AND (responsable = ? OR usuario_creador = ?)";
+                $params[] = $user_encontrado["id"];
+                $params[] = $user_encontrado["id"];
+            } else {
+                // Usuario no encontrado, sin resultados
+                $where .= " AND 1=0";
+            }
+        } else {
+            // Búsqueda normal
+            $where .= " AND (ticket_number LIKE ? OR titulo LIKE ? OR nombre_solicitante LIKE ?)";
+            $params[] = '%' . $busqueda . '%';
+            $params[] = '%' . $busqueda . '%';
+            $params[] = '%' . $busqueda . '%';
+        }
     }
     
     $stmt_count = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE " . $where);
@@ -218,13 +238,9 @@ function getEstadoColor($estado) {
         <!-- Buscador -->
         <div class="card mb-4">
             <div class="card-body">
-                <form method="GET" action="" class="d-flex gap-2">
-                    <input type="text" class="form-control" name="buscar" placeholder="Buscar por número (DCD...), título o solicitante" value="<?php echo htmlspecialchars($busqueda); ?>">
-                    <button type="submit" class="btn btn-primary">Buscar</button>
-                    <?php if (!empty($busqueda)): ?>
-                        <a href="tickets.php" class="btn btn-secondary">Limpiar</a>
-                    <?php endif; ?>
-                </form>
+                <div class="d-flex gap-2">
+                    <input type="text" id="searchTickets" class="form-control" placeholder="Buscar por número (DCD...), título o solicitante" value="<?php echo htmlspecialchars($busqueda); ?>">
+                </div>
             </div>
         </div>
         
@@ -424,8 +440,9 @@ function getEstadoColor($estado) {
             }
         });
         
-        // Listener para checkboxes
+        // Listener para checkboxes y búsqueda en tiempo real
         document.addEventListener('DOMContentLoaded', function() {
+            // Checkboxes
             document.querySelectorAll('.ticket-checkbox').forEach(cb => {
                 cb.addEventListener('change', updateCheckboxes);
             });
@@ -434,6 +451,27 @@ function getEstadoColor($estado) {
             const successMessage = '<?php echo htmlspecialchars($success ?? ''); ?>';
             if (successMessage) {
                 mostrarToast(successMessage, 'success');
+            }
+            
+            // Búsqueda en tiempo real
+            const searchInput = document.getElementById('searchTickets');
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function(e) {
+                    clearTimeout(searchTimeout);
+                    const query = e.target.value.trim();
+                    
+                    searchTimeout = setTimeout(() => {
+                        // Actualizar URL y recargar
+                        const url = new URL(window.location);
+                        if (query) {
+                            url.searchParams.set('buscar', query);
+                        } else {
+                            url.searchParams.delete('buscar');
+                        }
+                        window.location.search = url.search;
+                    }, 500);
+                });
             }
         });
         
@@ -462,3 +500,5 @@ function getEstadoColor($estado) {
             });
         }
     </script>
+</body>
+</html>
