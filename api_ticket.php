@@ -183,6 +183,58 @@ try {
         echo json_encode(["success" => true, "responsable_nombre" => $responsable_nombre, "comentario" => $comentario_nuevo]);
     }
     
+    // EDITAR DESCRIPCIÓN
+    elseif ($action === "editar_descripcion") {
+        // Validar que sea admin
+        if ($_SESSION["role"] !== "admin") {
+            http_response_code(403);
+            echo json_encode(["error" => "Solo administradores pueden editar la descripción"]);
+            exit();
+        }
+        
+        $descripcion_nueva = $_POST["descripcion"] ?? "";
+        $titulo_nuevo = $_POST["titulo"] ?? "";
+        
+        if (empty($descripcion_nueva)) {
+            echo json_encode(["error" => "La descripción no puede estar vacía"]);
+            exit();
+        }
+        
+        if (empty($titulo_nuevo)) {
+            echo json_encode(["error" => "El título no puede estar vacío"]);
+            exit();
+        }
+        
+        // Actualizar descripción y título
+        $stmt = $conexion->prepare("UPDATE tickets SET descripcion = ?, titulo = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
+        $stmt->execute([$descripcion_nueva, $titulo_nuevo, $ticket_id]);
+        
+        // Obtener nombre del usuario actual
+        $stmt = $conexion->prepare("SELECT username FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION["user_id"]]);
+        $user_actual = $stmt->fetch(PDO::FETCH_ASSOC);
+        $usuario_actual = $user_actual["username"] ?? "Sistema";
+        
+        // Agregar comentario automático de edición
+        $mensaje_edicion = "📝 " . $usuario_actual . " editó la descripción del caso";
+        $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario, tipo_comentario) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$ticket_id, $_SESSION["user_id"], $mensaje_edicion, 'edicion']);
+        
+        // Obtener el comentario que se acaba de crear
+        $stmt = $conexion->prepare("
+            SELECT c.*, u.username, 
+                   COALESCE(um.username, '') as usuario_modifico_nombre
+            FROM comentarios_tickets c
+            JOIN users u ON c.usuario_id = u.id
+            LEFT JOIN users um ON c.usuario_modificado_por = um.id
+            WHERE c.id = LAST_INSERT_ID()
+        ");
+        $stmt->execute();
+        $comentario_nuevo = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        echo json_encode(["success" => true, "descripcion" => $descripcion_nueva, "titulo" => $titulo_nuevo, "comentario" => $comentario_nuevo]);
+    }
+    
     // OBTENER TICKETS POR ACTIVO
     else if ($action === "obtener_tickets_por_activo") {
         $rfk = $_GET["rfk"] ?? "";

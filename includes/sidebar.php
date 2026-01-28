@@ -337,6 +337,13 @@ require_once 'config.php';
         </li>
 
         <li class="sidebar-nav-item">
+            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'contactos.php') ? 'active' : ''; ?>" href="contactos.php" title="Contactos">
+                <span class="sidebar-nav-icon"><i class="bi bi-person-lines-fill"></i></span>
+                <span class="sidebar-nav-text">Contactos</span>
+            </a>
+        </li>
+
+        <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'cuentas_servicio.php' || basename($_SERVER['PHP_SELF']) === 'crear_cuenta_servicio.php' || basename($_SERVER['PHP_SELF']) === 'editar_cuenta_servicio.php') ? 'active' : ''; ?>" href="cuentas_servicio.php" title="Cuentas de Servicio">
                 <span class="sidebar-nav-icon"><i class="bi bi-key-fill"></i></span>
                 <span class="sidebar-nav-text">Cuentas</span>

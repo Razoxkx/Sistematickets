@@ -55,10 +55,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_cuenta"])) {
     <style>
         body {
             background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+            margin-left: 280px;
         }
         
         [data-bs-theme="dark"] body {
             background: linear-gradient(to bottom, #1a1a1a, #0d0d0d);
+        }
+
+        /* Contenedor principal responsivo */
+        .contenedor-principal {
+            margin-top: 20px;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                margin-left: 70px;
+            }
+
+            .contenedor-principal {
+                margin-top: 15px;
+            }
+        }
+
+        /* Header responsivo */
+        .header-crear {
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-right: 0 !important;
+        }
+
+        .header-crear h1 {
+            margin-bottom: 5px;
+            margin-right: 0;
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
         }
     </style>
     <script>
@@ -75,99 +106,101 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_cuenta"])) {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid" style="margin-left: 280px; padding: 20px;">
-        <div class="row mb-4">
-            <div class="col-md-8">
-                <h1><i class="bi bi-plus-circle"></i> Crear Cuenta de Servicio</h1>
-            </div>
-            <div class="col-md-4 text-end">
-                <a href="cuentas_servicio.php" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Volver
-                </a>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card shadow">
-                    <div class="card-body p-4">
-                        <?php if (!empty($error)): ?>
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        <?php endif; ?>
-
-                        <form method="POST" action="">
-                            <!-- Plataforma -->
-                            <div class="mb-3">
-                                <label for="plataforma" class="form-label">
-                                    <i class="bi bi-window"></i> Plataforma <span class="text-danger">*</span>
-                                </label>
-                                <input type="text" class="form-control" id="plataforma" name="plataforma" required placeholder="ej: Gmail, AWS, Slack, GitHub...">
-                                <small class="text-muted">Nombre del servicio o plataforma</small>
-                            </div>
-
-                            <!-- Correo -->
-                            <div class="mb-3">
-                                <label for="correo" class="form-label">
-                                    <i class="bi bi-envelope"></i> Correo <span class="text-danger">*</span>
-                                </label>
-                                <input type="email" class="form-control" id="correo" name="correo" required placeholder="usuario@ejemplo.com">
-                                <small class="text-muted">Correo o usuario de la cuenta</small>
-                            </div>
-
-                            <!-- Contraseña -->
-                            <div class="mb-3">
-                                <label for="contraseña" class="form-label">
-                                    <i class="bi bi-lock"></i> Contraseña <span class="text-danger">*</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="contraseña" name="contraseña" required placeholder="••••••••">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                                <small class="text-muted">Contraseña de acceso a la plataforma</small>
-                            </div>
-
-                            <!-- Descripción -->
-                            <div class="mb-3">
-                                <label for="descripcion" class="form-label">
-                                    <i class="bi bi-file-text"></i> Descripción
-                                </label>
-                                <textarea class="form-control" id="descripcion" name="descripcion" rows="4" placeholder="Notas adicionales, permisos, información relevante..."></textarea>
-                                <small class="text-muted">Información adicional sobre esta cuenta</small>
-                            </div>
-
-                            <hr>
-
-                            <!-- Botones -->
-                            <div class="d-flex gap-2">
-                                <button type="submit" name="crear_cuenta" class="btn btn-primary">
-                                    <i class="bi bi-check-circle"></i> Crear Cuenta
-                                </button>
-                                <a href="cuentas_servicio.php" class="btn btn-secondary">
-                                    <i class="bi bi-x-circle"></i> Cancelar
-                                </a>
-                            </div>
-                        </form>
-                    </div>
+    <div class="contenedor-principal">
+        <div class="container-fluid">
+            <div class="row header-crear mb-4">
+                <div class="col-12 col-md-8">
+                    <h1><i class="bi bi-plus-circle"></i> Crear Cuenta de Servicio</h1>
+                </div>
+                <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="cuentas_servicio.php" class="btn btn-secondary w-100 w-md-auto">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
                 </div>
             </div>
 
-            <!-- Panel informativo -->
-            <div class="col-md-4">
-                <div class="card bg-info text-white">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="bi bi-shield-check"></i> Información de Seguridad</h5>
-                        <hr class="border-white-50">
-                        <ul class="small mb-0">
-                            <li>Las contraseñas se guardan de forma segura</li>
-                            <li>Solo los administradores pueden revelar contraseñas</li>
-                            <li>Se requiere validación con contraseña de admin</li>
-                            <li>Todos los accesos se registran en auditoría</li>
-                        </ul>
+            <div class="row">
+                <div class="col-12 col-md-8">
+                    <div class="card shadow">
+                        <div class="card-body p-3 p-md-4">
+                            <?php if (!empty($error)): ?>
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            <?php endif; ?>
+
+                            <form method="POST" action="">
+                                <!-- Plataforma -->
+                                <div class="mb-3">
+                                    <label for="plataforma" class="form-label">
+                                        <i class="bi bi-window"></i> Plataforma <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="plataforma" name="plataforma" required placeholder="ej: Gmail, AWS, Slack, GitHub...">
+                                    <small class="text-muted">Nombre del servicio o plataforma</small>
+                                </div>
+
+                                <!-- Usuario/Cuenta -->
+                                <div class="mb-3">
+                                    <label for="correo" class="form-label">
+                                        <i class="bi bi-person"></i> Usuario/Cuenta <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="correo" name="correo" required placeholder="ej: usuario@ejemplo.com, user123, ID de usuario...">
+                                    <small class="text-muted">Correo, nombre de usuario, ID o cualquier identificador de la cuenta</small>
+                                </div>
+
+                                <!-- Contraseña -->
+                                <div class="mb-3">
+                                    <label for="contraseña" class="form-label">
+                                        <i class="bi bi-lock"></i> Contraseña <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="contraseña" name="contraseña" required placeholder="••••••••">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Contraseña de acceso a la plataforma</small>
+                                </div>
+
+                                <!-- Descripción -->
+                                <div class="mb-3">
+                                    <label for="descripcion" class="form-label">
+                                        <i class="bi bi-file-text"></i> Descripción
+                                    </label>
+                                    <textarea class="form-control" id="descripcion" name="descripcion" rows="4" placeholder="Notas adicionales, permisos, información relevante..."></textarea>
+                                    <small class="text-muted">Información adicional sobre esta cuenta</small>
+                                </div>
+
+                                <hr>
+
+                                <!-- Botones -->
+                                <div class="d-grid gap-2 d-md-flex">
+                                    <button type="submit" name="crear_cuenta" class="btn btn-primary flex-md-grow-1">
+                                        <i class="bi bi-check-circle"></i> Crear Cuenta
+                                    </button>
+                                    <a href="cuentas_servicio.php" class="btn btn-secondary flex-md-grow-1">
+                                        <i class="bi bi-x-circle"></i> Cancelar
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel informativo -->
+                <div class="col-12 col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body p-3 p-md-4">
+                            <h5 class="card-title"><i class="bi bi-shield-check"></i> Información de Seguridad</h5>
+                            <hr class="border-white-50">
+                            <ul class="small mb-0">
+                                <li>Las contraseñas se guardan de forma segura</li>
+                                <li>Solo los administradores pueden revelar contraseñas</li>
+                                <li>Se requiere validación con contraseña de admin</li>
+                                <li>Todos los accesos se registran en auditoría</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>

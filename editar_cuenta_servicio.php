@@ -237,12 +237,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
                                     <input type="text" class="form-control" id="plataforma" name="plataforma" required value="<?php echo htmlspecialchars($cuenta["plataforma"]); ?>">
                                 </div>
 
-                                <!-- Correo -->
+                                <!-- Usuario/Cuenta -->
                                 <div class="mb-3">
                                     <label for="correo" class="form-label">
-                                        <i class="bi bi-envelope"></i> Correo <span class="text-danger">*</span>
+                                        <i class="bi bi-person"></i> Usuario/Cuenta <span class="text-danger">*</span>
                                     </label>
-                                    <input type="email" class="form-control" id="correo" name="correo" required value="<?php echo htmlspecialchars($cuenta["correo"]); ?>">
+                                    <input type="text" class="form-control" id="correo" name="correo" required value="<?php echo htmlspecialchars($cuenta["correo"]); ?>">
                                 </div>
 
                                 <!-- Contraseña -->

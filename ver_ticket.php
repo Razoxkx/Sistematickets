@@ -303,6 +303,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_comentario_id"]
     }
 }
 
+// Editar descripción del ticket (solo admins)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_descripcion_id"])) {
+    // Validar que sea admin
+    if ($_SESSION["role"] !== "admin") {
+        $error = "Solo los administradores pueden editar la descripción";
+    } else {
+        $descripcion_nueva = $_POST["descripcion_editada"] ?? "";
+        
+        if (empty($descripcion_nueva)) {
+            $error = "La descripción no puede estar vacía";
+        } else {
+            try {
+                $stmt = $conexion->prepare("UPDATE tickets SET descripcion = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
+                $stmt->execute([$descripcion_nueva, $ticket["id"]]);
+                
+                // Agregar comentario automático de edición
+                $usuario_actual = htmlspecialchars($_SESSION["username"]);
+                $mensaje_edicion = "📝 " . $usuario_actual . " editó la descripción del caso";
+                $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario, tipo_comentario) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$ticket["id"], $_SESSION["user_id"], $mensaje_edicion, 'edicion']);
+                
+                $success = "Descripción actualizada correctamente";
+                $ticket["descripcion"] = $descripcion_nueva;
+                
+                // Recargar comentarios
+                $stmt = $conexion->prepare("
+                    SELECT c.*, u.username, 
+                           COALESCE(um.username, '') as usuario_modifico_nombre
+                    FROM comentarios_tickets c
+                    JOIN users u ON c.usuario_id = u.id
+                    LEFT JOIN users um ON c.usuario_modificado_por = um.id
+                    WHERE c.ticket_id = ?
+                    ORDER BY c.fecha DESC
+                ");
+                $stmt->execute([$ticket["id"]]);
+                $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                $error = "Error al editar descripción: " . $e->getMessage();
+            }
+        }
+    }
+}
+
 // Obtener datos del usuario propietario, responsable y creador
 $propietario_nombre = "";
 if ($ticket["propietario"]) {
@@ -443,11 +486,11 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             color: #8b9dff;
         }
         
-        [data-bs-theme="dark"] .ticket-header-gradient > .row > .col-lg-5 {
+        /* [data-bs-theme="dark"] .ticket-header-gradient > .row > .col-lg-5 {
             background: #262626;
             padding: 20px;
             border-radius: 8px;
-        }
+        } */
         
         [data-bs-theme="dark"] .ticket-header-gradient > .row > .col-lg-5 h6 {
             color: #8b9dff;
@@ -634,6 +677,87 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             background: #0d0d0d;
         }
         
+        /* Estilos para Descripción del Caso - Light Mode */
+        .ticket-descripcion-case {
+            padding: 30px 50px;
+        }
+        
+        .ticket-descripcion-case h5 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .descripcion-contenido {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(102, 126, 234, 0.04) 100%);
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+            margin-bottom: 30px;
+        }
+        
+        .descripcion-contenido p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            color: #2c3e50;
+            font-size: 1.05rem;
+            font-weight: 500;
+        }
+        
+        .texto-muted-case {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+        }
+        
+        /* Estilos para Descripción del Caso - Dark Mode */
+        [data-bs-theme="dark"] .ticket-descripcion-case h5 {
+            color: #8b9dff;
+        }
+        
+        [data-bs-theme="dark"] .descripcion-contenido {
+            background: linear-gradient(135deg, rgba(139, 157, 255, 0.15) 0%, rgba(139, 157, 255, 0.08) 100%);
+            border-left-color: #8b9dff;
+            box-shadow: 0 2px 8px rgba(139, 157, 255, 0.2);
+        }
+        
+        [data-bs-theme="dark"] .descripcion-contenido p {
+            color: #e0e0e0;
+        }
+        
+        [data-bs-theme="dark"] .texto-muted-case {
+            color: #a0a0a0;
+        }
+        
+        [data-bs-theme="dark"] .ticket-descripcion-case h5 {
+            color: #8b9dff;
+        }
+        
+        /* Botón de editar descripción */
+        .btn-outline-primary {
+            color: #667eea;
+            border-color: #667eea;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+        
+        [data-bs-theme="dark"] .btn-outline-primary {
+            color: #8b9dff;
+            border-color: #8b9dff;
+        }
+        
+        [data-bs-theme="dark"] .btn-outline-primary:hover {
+            background-color: #8b9dff;
+            border-color: #8b9dff;
+            color: #1e1e1e;
+        }
+        
         .ticket-body-card {
             background: white;
             border-left: 5px solid #667eea;
@@ -689,6 +813,16 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
         [data-bs-theme="dark"] .comentario.comentario-asignacion {
             background: rgba(13, 110, 253, 0.15);
             border-left-color: #4dabf7;
+        }
+        
+        .comentario.comentario-edicion {
+            border-left-color: #6f42c1;
+            background: #f8f5ff;
+        }
+        
+        [data-bs-theme="dark"] .comentario.comentario-edicion {
+            background: rgba(111, 66, 193, 0.15);
+            border-left-color: #b197fc;
         }
         
         [data-bs-theme="dark"] .form-control,
@@ -779,7 +913,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                             <i class="bi bi-clipboard"></i>
                         </button>
                     </div>
-                    <h4 style="margin-bottom: 15px;"><?php echo htmlspecialchars($ticket["titulo"]); ?></h4>
+                    <h4 id="titulo-ticket" style="margin: 0; margin-bottom: 15px;"><?php echo htmlspecialchars($ticket["titulo"]); ?></h4>
                     <div style="background: #f0f6ff; padding: 10px 14px; border-radius: 6px; border-left: 4px solid #667eea; font-size: 0.95rem; margin-bottom: 15px;">
                         <strong style="color: #667eea;">📋 Reportado por:</strong> 
                         <span style="font-weight: 500; color: #0056b3;">
@@ -803,74 +937,40 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     </div>
                 </div>
                 
-                <!-- Derecha: Gestión del Ticket -->
-                <div class="col-lg-5">
-                    <div class="gestion-box" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea;">
-                        <h6 style="margin-bottom: 18px; color: #667eea;"><i class="bi bi-sliders"></i> <strong>Gestión</strong></h6>
-                        
-                        <div class="mb-3">
-                            <label class="form-label d-block" style="font-size: 0.85rem;"><strong>Estado</strong></label>
-                            <div class="d-flex gap-2">
-                                <select name="nueva_estado" class="form-select form-select-sm select-tema" onchange="cambiarEstado(this.value);">
-                                    <?php foreach ($estados as $est): ?>
-                                        <option value="<?php echo htmlspecialchars($est); ?>" <?php echo $ticket["estado"] === $est ? "selected" : ""; ?>>
-                                            <?php echo ucfirst(htmlspecialchars($est)); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalHistorialEstados" title="Ver historial">
-                                    <i class="bi bi-clock-history"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label d-block" style="font-size: 0.85rem;"><strong>Responsable</strong></label>
-                            <?php 
-                            $es_cerrado = $ticket["estado"] === "ticket cerrado";
-                            $es_admin = $_SESSION["role"] === "admin";
-                            $responsable_deshabilitado = $es_cerrado && !$es_admin;
-                            ?>
-                            <select name="nuevo_responsable" class="form-select form-select-sm select-tema" onchange="cambiarResponsable(this.value);" <?php echo $responsable_deshabilitado ? "disabled" : ""; ?>>
-                                <option value="">-- Sin asignar --</option>
-                                <?php foreach ($usuarios_soporte as $user): ?>
-                                    <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (int)$ticket["responsable"] === (int)$user["id"] ? "selected" : ""; ?>>
-                                        <?php echo htmlspecialchars($user["username"]); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label d-block" style="font-size: 0.85rem;"><strong>Propietario</strong></label>
-                            <div class="propietario-box" style="padding: 8px; background: white; border-radius: 4px; border: 1px solid #ddd; font-size: 0.9em;">
-                                <span class="badge bg-info"><?php echo htmlspecialchars($propietario_nombre) ?: 'Sin asignar'; ?></span>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <?php if ($ticket["es_cerrado"] == 0): ?>
-                                <button type="button" class="btn btn-danger btn-sm w-100" data-bs-toggle="modal" data-bs-target="#modalCerrarTicket">
-                                    <i class="bi bi-check-circle"></i> Cerrar
-                                </button>
-                            <?php else: ?>
-                                <form method="POST" style="display: inline; width: 100%;">
-                                    <button type="submit" name="cerrar_ticket" value="reabrir" class="btn btn-warning btn-sm w-100">
-                                        ↺ Reabrir
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                <!-- Derecha: Botón Gestión Discreto -->
+                <div class="col-lg-5" style="display: flex; align-items: flex-start; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalGestion" title="Gestionar ticket" style="padding: 0.4rem 0.8rem;">
+                        <i class="bi bi-sliders"></i> Gestión
+                    </button>
+                    <?php if ($ticket["es_cerrado"] == 0): ?>
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalCerrarTicket" title="Cerrar ticket">
+                            <i class="bi bi-check-circle"></i> Cerrar
+                        </button>
+                    <?php else: ?>
+                        <form method="POST" style="display: inline;">
+                            <button type="submit" name="cerrar_ticket" value="reabrir" class="btn btn-sm btn-warning" title="Reabrir ticket">
+                                ↺ Reabrir
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
         
         <!-- Descripción del Ticket -->
-        <div class="ticket-content">
-                <h5 style="margin-bottom: 15px; color: #667eea;"><i class="bi bi-file-text"></i> <strong>Descripción del Caso</strong></h5>
-                <p style="margin-bottom: 15px; line-height: 1.7; white-space: pre-wrap;"><?php echo htmlspecialchars($ticket["descripcion"]); ?></p>
-                <small class="text-muted"><i class="bi bi-clock"></i> Última modificación: <?php echo formatearFechaHora($ticket["fecha_ultima_modificacion"]); ?></small>
+        <div class="ticket-descripcion-case">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h5 style="margin: 0;"><i class="bi bi-file-text"></i> <strong>Descripción del Caso</strong></h5>
+                    <?php if ($_SESSION["role"] === "admin"): ?>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarDescripcion" title="Editar descripción">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                    <?php endif; ?>
+                </div>
+                <div class="descripcion-contenido">
+                    <p id="texto-descripcion"><?php echo htmlspecialchars($ticket["descripcion"]); ?></p>
+                    <small class="texto-muted-case"><i class="bi bi-clock"></i> Última modificación: <?php echo formatearFechaHora($ticket["fecha_ultima_modificacion"]); ?></small>
+                </div>
             </div>
             
             <!-- Agregar Comentario -->
@@ -893,7 +993,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                         <p class="text-muted"><i class="bi bi-info-circle"></i> No hay comentarios aún</p>
                     <?php else: ?>
                         <?php foreach ($comentarios as $com): ?>
-                            <div class="comentario <?php echo ($com['tipo_comentario'] === 'cierre') ? 'comentario-cierre' : (($com['tipo_comentario'] === 'asignacion') ? 'comentario-asignacion' : (($com['tipo_comentario'] === 'mencion') ? 'comentario-mencion' : '')); ?>" id="comentario-<?php echo $com['id']; ?>">
+                            <div class="comentario <?php echo ($com['tipo_comentario'] === 'cierre') ? 'comentario-cierre' : (($com['tipo_comentario'] === 'asignacion') ? 'comentario-asignacion' : (($com['tipo_comentario'] === 'edicion') ? 'comentario-edicion' : (($com['tipo_comentario'] === 'mencion') ? 'comentario-mencion' : ''))); ?>" id="comentario-<?php echo $com['id']; ?>">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <div class="comentario-autor"><strong><?php echo htmlspecialchars($com["username"]); ?></strong></div>
@@ -1194,12 +1294,89 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             });
         }
         
+        // AJAX para guardar descripción en tiempo real
+        function guardarDescripcionAJAX(e) {
+            e.preventDefault();
+            
+            const ticketId = new URLSearchParams(window.location.search).get('id') || document.querySelector('input[name="ticket_id"]')?.value;
+            const descripcion = document.getElementById('descripcionEditada').value;
+            const titulo = document.getElementById('tituloEditadoModal').value;
+            const alertaDiv = document.getElementById('alertaDescripcion');
+            const btnGuardar = document.getElementById('btnGuardarDescripcion');
+            
+            if (!descripcion.trim()) {
+                alertaDiv.innerHTML = '<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-circle"></i> La descripción no puede estar vacía</div>';
+                alertaDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!titulo.trim()) {
+                alertaDiv.innerHTML = '<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-circle"></i> El título no puede estar vacío</div>';
+                alertaDiv.style.display = 'block';
+                return;
+            }
+            
+            // Mostrar estado de carga
+            btnGuardar.disabled = true;
+            const textoOriginal = btnGuardar.innerHTML;
+            btnGuardar.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
+            
+            fetch('api_ticket.php?action=editar_descripcion', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    ticket_id: ticketId,
+                    descripcion: descripcion,
+                    titulo: titulo
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = textoOriginal;
+                
+                if (data.success) {
+                    // Actualizar descripción en el DOM
+                    const textoDescripcion = document.getElementById('texto-descripcion');
+                    if (textoDescripcion) {
+                        textoDescripcion.textContent = descripcion;
+                    }
+                    
+                    // Actualizar título en el DOM
+                    const tituloTicket = document.getElementById('titulo-ticket');
+                    if (tituloTicket) {
+                        tituloTicket.textContent = titulo;
+                    }
+                    
+                    // Agregar comentario automático de edición al DOM
+                    if (data.comentario) {
+                        agregarComentarioDOM(data.comentario);
+                    }
+                    
+                    // Cerrar modal inmediatamente
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarDescripcion'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                } else {
+                    alertaDiv.innerHTML = '<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-circle"></i> Error: ' + (data.error || 'No se pudo guardar') + '</div>';
+                    alertaDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = textoOriginal;
+                alertaDiv.innerHTML = '<div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';
+                alertaDiv.style.display = 'block';
+            });
+        }
+        
         // Agregar comentario al DOM sin recargar
         function agregarComentarioDOM(com) {
             const contenedor = document.querySelector('#comentarios-contenedor');
             if (!contenedor) return;
             
-            const tipoClase = com.tipo_comentario === 'cierre' ? 'comentario-cierre' : (com.tipo_comentario === 'asignacion' ? 'comentario-asignacion' : (com.tipo_comentario === 'mencion' ? 'comentario-mencion' : ''));
+            const tipoClase = com.tipo_comentario === 'cierre' ? 'comentario-cierre' : (com.tipo_comentario === 'asignacion' ? 'comentario-asignacion' : (com.tipo_comentario === 'edicion' ? 'comentario-edicion' : (com.tipo_comentario === 'mencion' ? 'comentario-mencion' : '')));
             
             // Procesar menciones: tickets (#DCDXXXXXX), activos (#AKXXXXXXX) y usuarios (#usuario)
             let comentarioConMenciones = com.comentario
@@ -1218,16 +1395,30 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     return '<a href="perfil_usuario.php?username=' + encodeURIComponent(usuario) + '" class="usuario-mention" title="Ver perfil de ' + usuario + '">#' + usuario + '</a>';
                 });
             
+            // Determinar si mostrar botón de editar
+            const userId = <?php echo $_SESSION["user_id"]; ?>;
+            const puedeEditar = (com.usuario_id == userId && com.tipo_comentario !== 'asignacion' && com.tipo_comentario !== 'cierre');
+            const botonEditar = puedeEditar ? `<button class="btn btn-sm btn-outline-primary btn-editar-com" onclick="editarComentario(${com.id})">Editar</button>` : '';
+            
             const html = `
                 <div class="comentario ${tipoClase}" id="comentario-${com.id}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <div class="comentario-autor">${com.username}</div>
-                            <div class="comentario-fecha">${formatearFechaCliente(com.fecha)}</div>
+                            <div class="comentario-autor"><strong>${com.username}</strong></div>
+                            <div class="comentario-fecha" style="font-size: 0.85rem; color: #6c757d;">${formatearFechaCliente(com.fecha)}</div>
                         </div>
+                        ${botonEditar}
                     </div>
                     <div class="mt-2" id="texto-comentario-${com.id}">
                         ${comentarioConMenciones}
+                    </div>
+                    <div class="comentario-edit-form" id="form-editar-${com.id}" style="display: none;">
+                        <form method="POST" action="">
+                            <textarea class="form-control mb-2" name="comentario_editado" rows="3">${com.comentario.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                            <input type="hidden" name="editar_comentario_id" value="${com.id}">
+                            <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="cancelarEditar(${com.id})">Cancelar</button>
+                        </form>
                     </div>
                 </div>
             `;
@@ -1290,6 +1481,145 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
+    </script>
+
+    <!-- Modal Editar Descripción -->
+    <div class="modal fade" id="modalEditarDescripcion" tabindex="-1" aria-labelledby="modalEditarDescripcionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEditarDescripcionLabel"><i class="bi bi-pencil-square"></i> Editar Descripción del Caso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="formEditarDescripcion" onsubmit="guardarDescripcionAJAX(event);">
+                    <div class="modal-body">
+                        <input type="hidden" name="ticket_id" value="<?php echo $ticket['id']; ?>">
+                        <div class="mb-3">
+                            <label for="tituloEditadoModal" class="form-label"><strong>Título del Ticket</strong></label>
+                            <input type="text" class="form-control" id="tituloEditadoModal" name="titulo_editado_modal" placeholder="Edita el título del ticket..." required value="<?php echo htmlspecialchars($ticket["titulo"]); ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcionEditada" class="form-label"><strong>Descripción</strong></label>
+                            <textarea class="form-control" id="descripcionEditada" name="descripcion_editada" rows="8" placeholder="Edita la descripción del caso..." required><?php echo htmlspecialchars($ticket["descripcion"]); ?></textarea>
+                            <small class="text-muted">Esta descripción será visible para todos los usuarios</small>
+                        </div>
+                        <div id="alertaDescripcion" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarDescripcion">
+                            <i class="bi bi-check"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestión -->
+    <div class="modal fade" id="modalGestion" tabindex="-1" aria-labelledby="modalGestionLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalGestionLabel"><i class="bi bi-sliders"></i> Gestionar Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formGestion">
+                        <div class="mb-3">
+                            <label for="modalEstado" class="form-label"><strong>Estado</strong></label>
+                            <div class="d-flex gap-2">
+                                <select id="modalEstado" name="nueva_estado" class="form-select">
+                                    <?php foreach ($estados as $est): ?>
+                                        <option value="<?php echo htmlspecialchars($est); ?>" <?php echo $ticket["estado"] === $est ? "selected" : ""; ?>>
+                                            <?php echo ucfirst(htmlspecialchars($est)); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalHistorialEstados" title="Ver historial">
+                                    <i class="bi bi-clock-history"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="modalResponsable" class="form-label"><strong>Responsable</strong></label>
+                            <?php 
+                            $es_cerrado = $ticket["estado"] === "ticket cerrado";
+                            $es_admin = $_SESSION["role"] === "admin";
+                            $responsable_deshabilitado = $es_cerrado && !$es_admin;
+                            ?>
+                            <select id="modalResponsable" name="nuevo_responsable" class="form-select" <?php echo $responsable_deshabilitado ? "disabled" : ""; ?>>
+                                <option value="">-- Sin asignar --</option>
+                                <?php foreach ($usuarios_soporte as $user): ?>
+                                    <option value="<?php echo htmlspecialchars($user["id"]); ?>" <?php echo (int)$ticket["responsable"] === (int)$user["id"] ? "selected" : ""; ?>>
+                                        <?php echo htmlspecialchars($user["username"]); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="modalPropietario" class="form-label"><strong>Propietario</strong></label>
+                            <div style="padding: 8px; background: #f8f9fa; border-radius: 4px; border: 1px solid #ddd;">
+                                <span class="badge bg-info"><?php echo htmlspecialchars($propietario_nombre) ?: 'Sin asignar'; ?></span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarGestion()">
+                        <i class="bi bi-check"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function guardarGestion() {
+            const estado = document.getElementById('modalEstado').value;
+            const responsable = document.getElementById('modalResponsable').value;
+            const ticketId = new URLSearchParams(window.location.search).get('id');
+            
+            // Cambiar estado si se modificó
+            if (estado !== '<?php echo $ticket["estado"]; ?>') {
+                fetch('api_ticket.php?action=cambiar_estado', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({
+                        ticket_id: ticketId,
+                        estado: estado
+                    })
+                })
+                .then(r => r.json())
+                .catch(err => console.error(err));
+            }
+            
+            // Cambiar responsable si se modificó
+            if (responsable !== '<?php echo $ticket["responsable"] ?? ""; ?>') {
+                fetch('api_ticket.php?action=cambiar_responsable', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({
+                        ticket_id: ticketId,
+                        responsable: responsable
+                    })
+                })
+                .then(r => r.json())
+                .catch(err => console.error(err));
+            }
+            
+            // Cerrar modal y recargar página
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalGestion'));
+            modal.hide();
+            
+            // Recargar después de 500ms para que los cambios se guarden
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        }
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>

@@ -360,7 +360,7 @@ try {
                                 <!-- Correo -->
                                 <div class="mb-3">
                                     <label class="form-label small text-muted mb-1">
-                                        <i class="bi bi-envelope"></i> Correo
+                                        <i class="bi bi-envelope"></i> Correo o usuario
                                     </label>
                                     <input type="text" class="form-control form-control-sm" value="<?php echo htmlspecialchars($cuenta["correo"]); ?>" readonly>
                                 </div>

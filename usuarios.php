@@ -395,6 +395,141 @@ if (isset($_GET["editar"])) {
         </div>
     </div>
 
+    <!-- Modal Crear Contacto -->
+    <div class="modal fade" id="modalCrearContacto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Crear Nuevo Contacto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <input type="hidden" name="accion_crear_contacto" value="1">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre_completo_new" class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" id="nombre_completo_new" name="nombre_completo" required placeholder="ej: Juan García López">
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombre_usuario_new" class="form-label">Nombre de Usuario</label>
+                            <input type="text" class="form-control" id="nombre_usuario_new" name="nombre_usuario" placeholder="ej: jgarcia">
+                        </div>
+                        <div class="mb-3">
+                            <label for="correo_new" class="form-label">Correo</label>
+                            <input type="email" class="form-control" id="correo_new" name="correo" placeholder="ej: juan.garcia@empresa.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="numero_telefono_new" class="form-label">Número de Teléfono</label>
+                            <input type="tel" class="form-control" id="numero_telefono_new" name="numero_telefono" placeholder="ej: +1 234 567 8900">
+                        </div>
+                        <div class="mb-3">
+                            <label for="division_departamento_new" class="form-label">División/Departamento</label>
+                            <input type="text" class="form-control" id="division_departamento_new" name="division_departamento" placeholder="ej: Recursos Humanos">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Crear Contacto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Contacto -->
+    <div class="modal fade" id="modalEditarContacto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Contacto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <input type="hidden" name="accion_editar_contacto" value="1">
+                    <input type="hidden" name="contacto_id" id="edit_contacto_id" value="">
+    <!-- Modal Crear Contacto -->
+    <div class="modal fade" id="modalCrearContacto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Crear Nuevo Contacto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="contactos.php">
+                    <input type="hidden" name="accion_crear_contacto" value="1">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre_completo_new" class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" id="nombre_completo_new" name="nombre_completo" required placeholder="ej: Juan García López">
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombre_usuario_new" class="form-label">Nombre de Usuario</label>
+                            <input type="text" class="form-control" id="nombre_usuario_new" name="nombre_usuario" placeholder="ej: jgarcia">
+                        </div>
+                        <div class="mb-3">
+                            <label for="correo_new" class="form-label">Correo</label>
+                            <input type="email" class="form-control" id="correo_new" name="correo" placeholder="ej: juan.garcia@empresa.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="numero_telefono_new" class="form-label">Número de Teléfono</label>
+                            <input type="tel" class="form-control" id="numero_telefono_new" name="numero_telefono" placeholder="ej: +1 234 567 8900">
+                        </div>
+                        <div class="mb-3">
+                            <label for="division_departamento_new" class="form-label">División/Departamento</label>
+                            <input type="text" class="form-control" id="division_departamento_new" name="division_departamento" placeholder="ej: Recursos Humanos">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Crear Contacto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Contacto -->
+    <div class="modal fade" id="modalEditarContacto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Contacto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="contactos.php">
+                    <input type="hidden" name="accion_editar_contacto" value="1">
+                    <input type="hidden" name="contacto_id" id="edit_contacto_id" value="">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre_completo_edit" class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" id="nombre_completo_edit" name="nombre_completo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombre_usuario_edit" class="form-label">Nombre de Usuario</label>
+                            <input type="text" class="form-control" id="nombre_usuario_edit" name="nombre_usuario">
+                        </div>
+                        <div class="mb-3">
+                            <label for="correo_edit" class="form-label">Correo</label>
+                            <input type="email" class="form-control" id="correo_edit" name="correo">
+                        </div>
+                        <div class="mb-3">
+                            <label for="numero_telefono_edit" class="form-label">Número de Teléfono</label>
+                            <input type="tel" class="form-control" id="numero_telefono_edit" name="numero_telefono">
+                        </div>
+                        <div class="mb-3">
+                            <label for="division_departamento_edit" class="form-label">División/Departamento</label>
+                            <input type="text" class="form-control" id="division_departamento_edit" name="division_departamento">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function cargarDatosEditar(usuario) {
@@ -403,6 +538,15 @@ if (isset($_GET["editar"])) {
             document.getElementById('email_edit').value = usuario.email || '';
             document.getElementById('role_edit').value = usuario.role;
             document.getElementById('password_edit').value = '';
+        }
+
+        function cargarDatosEditarContacto(contacto) {
+            document.getElementById('edit_contacto_id').value = contacto.id;
+            document.getElementById('nombre_completo_edit').value = contacto.nombre_completo;
+            document.getElementById('nombre_usuario_edit').value = contacto.nombre_usuario || '';
+            document.getElementById('correo_edit').value = contacto.correo || '';
+            document.getElementById('numero_telefono_edit').value = contacto.numero_telefono || '';
+            document.getElementById('division_departamento_edit').value = contacto.division_departamento || '';
         }
     </script>
 </body>
