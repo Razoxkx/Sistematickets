@@ -8,8 +8,9 @@ if (!isset($_SESSION["user_id"])) {
     exit();
 }
 
-// Verificar permisos: solo admin puede acceder
-if (($_SESSION["role"] ?? "") !== "admin") {
+// Verificar permisos: admin y tisupport pueden acceder
+$permisos = ['admin', 'tisupport'];
+if (!in_array($_SESSION["role"] ?? "", $permisos)) {
     header("Location: dashboard.php");
     exit();
 }
@@ -42,10 +43,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear_contacto"
     } else {
         try {
             $stmt = $conexion->prepare("
-                INSERT INTO contactos (nombre_completo, nombre_usuario, correo, numero_telefono, division_departamento)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO users (nombre_completo, username, email, dpto_division, role, password)
+                VALUES (?, ?, ?, ?, 'contacto', ?)
             ");
-            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, $numero_telefono, $division_departamento]);
+            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, $division_departamento, password_hash('', PASSWORD_BCRYPT)]);
             
             header("Location: contactos.php?success=contacto_creado");
             exit();
@@ -63,17 +64,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar_contacto
     $correo = trim($_POST["correo"] ?? "");
     $numero_telefono = trim($_POST["numero_telefono"] ?? "");
     $division_departamento = trim($_POST["division_departamento"] ?? "");
+    $role = trim($_POST["role"] ?? "contacto");
     
     if (empty($nombre_completo)) {
         $error = "El nombre completo es obligatorio";
     } else {
         try {
-            $stmt = $conexion->prepare("
-                UPDATE contactos 
-                SET nombre_completo = ?, nombre_usuario = ?, correo = ?, numero_telefono = ?, division_departamento = ?
+            $stmt = $conexion->prepare("\
+                UPDATE users 
+                SET nombre_completo = ?, username = ?, email = ?, dpto_division = ?, role = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, $numero_telefono, $division_departamento, $contacto_id]);
+            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, $division_departamento, $role, $contacto_id]);
             header("Location: contactos.php?success=contacto_actualizado");
             exit();
         } catch (PDOException $e) {
@@ -87,7 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar_contac
     $contacto_id = $_POST["contacto_id"] ?? "";
     if (!empty($contacto_id)) {
         try {
-            $stmt = $conexion->prepare("DELETE FROM contactos WHERE id = ?");
+            $stmt = $conexion->prepare("DELETE FROM users WHERE id = ? AND role = 'contacto'");
             $stmt->execute([$contacto_id]);
             header("Location: contactos.php?success=contacto_eliminado");
             exit();
@@ -106,32 +108,34 @@ $offset = ($pagina_contactos - 1) * $contactos_por_pagina;
 $busqueda_contacto = isset($_GET["busqueda_contacto"]) ? trim($_GET["busqueda_contacto"]) : "";
 
 try {
-    // Contar total de contactos con búsqueda
+    // Contar total de contactos (ahora en tabla users con role = 'contacto')
     if (!empty($busqueda_contacto)) {
-        $stmt = $conexion->prepare("
-            SELECT COUNT(*) as total FROM contactos 
-            WHERE nombre_completo LIKE ? OR nombre_usuario LIKE ? OR correo LIKE ? OR numero_telefono LIKE ? OR division_departamento LIKE ?
-        ");
+        $stmt = $conexion->prepare(
+            "SELECT COUNT(*) as total FROM users WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)"
+        );
         $search_term = "%{$busqueda_contacto}%";
-        $stmt->execute([$search_term, $search_term, $search_term, $search_term, $search_term]);
+        $stmt->execute([$search_term, $search_term, $search_term, $search_term]);
     } else {
-        $stmt = $conexion->query("SELECT COUNT(*) as total FROM contactos");
+        $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM users WHERE role = 'contacto'");
+        $stmt->execute();
     }
     $total_contactos = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-    
-    // Obtener contactos con paginación
+
+    // Obtener contactos con paginación desde users
     if (!empty($busqueda_contacto)) {
-        $stmt = $conexion->prepare("
-            SELECT * FROM contactos 
-            WHERE nombre_completo LIKE ? OR nombre_usuario LIKE ? OR correo LIKE ? OR numero_telefono LIKE ? OR division_departamento LIKE ?
-            ORDER BY nombre_completo 
-            LIMIT {$contactos_por_pagina} OFFSET {$offset}
-        ");
+        $stmt = $conexion->prepare(
+            "SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, dpto_division AS division_departamento
+             , role
+             FROM users
+             WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
+             ORDER BY nombre_completo
+             LIMIT {$contactos_por_pagina} OFFSET {$offset}"
+        );
         $search_term = "%{$busqueda_contacto}%";
-        $stmt->execute([$search_term, $search_term, $search_term, $search_term, $search_term]);
+        $stmt->execute([$search_term, $search_term, $search_term, $search_term]);
     } else {
-        $stmt = $conexion->prepare("SELECT * FROM contactos ORDER BY nombre_completo LIMIT {$contactos_por_pagina} OFFSET {$offset}");
-        $stmt->execute([]);
+        $stmt = $conexion->prepare("SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, dpto_division AS division_departamento, role FROM users WHERE role = 'contacto' ORDER BY nombre_completo LIMIT {$contactos_por_pagina} OFFSET {$offset}");
+        $stmt->execute();
     }
     $contactos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -223,6 +227,9 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                             <td><?php echo htmlspecialchars($contacto["numero_telefono"] ?? "N/A"); ?></td>
                                             <td><?php echo htmlspecialchars($contacto["division_departamento"] ?? "N/A"); ?></td>
                                             <td>
+                                                <a href="perfil_contacto.php?username=<?php echo urlencode($contacto["nombre_usuario"]); ?>" class="btn btn-sm btn-outline-info" title="Ver Perfil">
+                                                    <i class="bi bi-person-circle"></i>
+                                                </a>
                                                 <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(<?php echo htmlspecialchars(json_encode($contacto)); ?>)">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
@@ -361,6 +368,15 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                             <label for="division_departamento_edit" class="form-label">División/Departamento</label>
                             <input type="text" class="form-control" id="division_departamento_edit" name="division_departamento">
                         </div>
+                        <div class="mb-3">
+                            <label for="role_edit_contacto" class="form-label">Rol</label>
+                            <select class="form-select" id="role_edit_contacto" name="role">
+                                <option value="contacto">📇 Contacto</option>
+                                <option value="viewer">👁️ Lector</option>
+                                <option value="tisupport">🔧 Soporte TI</option>
+                                <option value="admin">🔑 Administrador</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -380,6 +396,11 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
             document.getElementById('correo_edit').value = contacto.correo || '';
             document.getElementById('numero_telefono_edit').value = contacto.numero_telefono || '';
             document.getElementById('division_departamento_edit').value = contacto.division_departamento || '';
+            // Set role if provided
+            if (contacto.role) {
+                var roleSelect = document.getElementById('role_edit_contacto');
+                if (roleSelect) roleSelect.value = contacto.role;
+            }
         }
 
         // Búsqueda en tiempo real de contactos (busca en toda la BD)
@@ -411,6 +432,9 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                 <td>${htmlEscape(contacto.numero_telefono || 'N/A')}</td>
                                 <td>${htmlEscape(contacto.division_departamento || 'N/A')}</td>
                                 <td>
+                                    <a href="perfil_contacto.php?username=${encodeURIComponent(contacto.nombre_usuario)}" class="btn btn-sm btn-outline-info" title="Ver Perfil">
+                                        <i class="bi bi-person-circle"></i>
+                                    </a>
                                     <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(${JSON.stringify(contacto).replace(/"/g, '&quot;')})">
                                         <i class="bi bi-pencil"></i>
                                     </button>

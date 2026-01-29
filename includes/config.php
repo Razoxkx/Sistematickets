@@ -151,7 +151,7 @@ function procesarMenciones($texto) {
         '/&lt;&lt;&lt;USER_([a-z0-9._-]+)&gt;&gt;&gt;/i',
         function($matches) {
             $usuario = $matches[1];
-            return '<a href="perfil_usuario.php?username=' . urlencode($usuario) . '" class="usuario-mention" title="Ver perfil de ' . $usuario . '">#' . $usuario . '</a>';
+            return '<a href="perfil_usuario.php?username=' . urlencode($usuario) . '" title="Ver perfil de ' . $usuario . '">#' . $usuario . '</a>';
         },
         $texto
     );
@@ -163,5 +163,48 @@ function procesarMenciones($texto) {
 function procesarMencionesTikets($texto) {
     return procesarMenciones($texto);
 }
-?>
+
+// Función para procesar hashtags de contactos (#nombre.apellido) y convertirlos en links
+function procesarHashtagsContactos($texto) {
+    global $conexion;
+    
+    // Encontrar todos los hashtags
+    $texto = preg_replace_callback(
+        '/#([a-z0-9._-]+)/i',
+        function($matches) use ($conexion) {
+            $hashtag = $matches[1];
+            
+            // Verificar si es un contacto o usuario
+            try {
+                // Primero buscar en users con rol 'contacto'
+                $stmt = $conexion->prepare("SELECT id FROM users WHERE username = ? AND role = 'contacto' LIMIT 1");
+                $stmt->execute([$hashtag]);
+                $contacto = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($contacto) {
+                    // Es un contacto (usuario con rol 'contacto')
+                    return '<a href="perfil_contacto.php?username=' . urlencode($hashtag) . '" class="usuario-mention" title="Ver perfil de contacto #' . htmlspecialchars($hashtag) . '">#' . htmlspecialchars($hashtag) . '</a>';
+                }
+                
+                // Si no es contacto, verificar si es usuario regular
+                $stmt = $conexion->prepare("SELECT id FROM users WHERE username = ? AND role != 'contacto' LIMIT 1");
+                $stmt->execute([$hashtag]);
+                $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($usuario) {
+                    // Es un usuario
+                    return '<a href="perfil_usuario.php?username=' . urlencode($hashtag) . '" class="usuario-mention" title="Ver perfil de usuario #' . htmlspecialchars($hashtag) . '">#' . htmlspecialchars($hashtag) . '</a>';
+                }
+                
+                // No es ni contacto ni usuario, devolver como está
+                return $matches[0];
+            } catch (PDOException $e) {
+                return $matches[0];
+            }
+        },
+        $texto
+    );
+    
+    return $texto;
+}
 

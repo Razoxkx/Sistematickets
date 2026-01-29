@@ -24,7 +24,7 @@ $items_por_pagina = 9;
 
 try {
     // Obtener datos del usuario
-    $stmt = $conexion->prepare("SELECT id, username, email, role FROM users WHERE username = ?");
+    $stmt = $conexion->prepare("SELECT id, username, email, role, foto_perfil FROM users WHERE username = ?");
     $stmt->execute([$usuario_busca]);
     $usuario_perfil = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -325,12 +325,23 @@ $total_paginas = ceil($total_items / $items_por_pagina);
             <div class="perfil-header-gradient">
                 <div class="row align-items-center g-3">
                     <div class="col-auto">
-                        <i class="bi bi-person-circle"></i>
+                        <?php if (!empty($usuario_perfil['foto_perfil']) && file_exists($usuario_perfil['foto_perfil'])): ?>
+                            <img src="<?php echo htmlspecialchars($usuario_perfil['foto_perfil']); ?>" 
+                                 alt="<?php echo htmlspecialchars($usuario_perfil['username']); ?>" 
+                                 style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid white;">
+                        <?php else: ?>
+                            <i class="bi bi-person-circle" style="font-size: 4rem;"></i>
+                        <?php endif; ?>
                     </div>
                     <div class="col">
                         <h1><?php echo htmlspecialchars($usuario_perfil["username"]); ?></h1>
                         <p class="mb-2" style="font-size: 1.05rem; opacity: 0.95;"><strong>Rol:</strong> <?php echo traducirRol($usuario_perfil["role"]); ?></p>
                         <p class="mb-0" style="opacity: 0.9;"><strong>Email:</strong> <?php echo htmlspecialchars($usuario_perfil["email"] ?? "N/A"); ?></p>
+                        <?php if ($_SESSION["user_id"] === $usuario_perfil["id"]): ?>
+                            <button class="btn btn-sm btn-light mt-2" data-bs-toggle="modal" data-bs-target="#modalFotoPerfil">
+                                <i class="bi bi-camera"></i> Cambiar Foto
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -546,6 +557,103 @@ $total_paginas = ceil($total_items / $items_por_pagina);
         
     </div>
     
+    <!-- Modal para cambiar foto de perfil -->
+    <div class="modal fade" id="modalFotoPerfil" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cambiar Foto de Perfil</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formSubirFoto">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="fotoPerfil" class="form-label">Seleccionar Foto (JPG, PNG, GIF)</label>
+                            <input type="file" class="form-control" id="fotoPerfil" name="foto" accept=".jpg,.jpeg,.png,.gif" required>
+                            <small class="form-text text-muted">
+                                Máximo 5MB. Formatos: JPG, PNG, GIF (incluyendo animados)
+                            </small>
+                        </div>
+                        <div id="previewFoto" class="text-center mb-3" style="display: none;">
+                            <img id="previewImg" src="" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                        </div>
+                        <div id="estadoSubida" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnSubirFoto">
+                            <i class="bi bi-upload"></i> Subir Foto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <script>
+        // Preview de imagen antes de subir
+        document.getElementById('fotoPerfil').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('previewImg').src = event.target.result;
+                    document.getElementById('previewFoto').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Manejo del formulario de subida de foto
+        document.getElementById('formSubirFoto').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const file = document.getElementById('fotoPerfil').files[0];
+            
+            if (!file) {
+                alert('Por favor selecciona una foto');
+                return;
+            }
+
+            // Validar tamaño (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                document.getElementById('estadoSubida').innerHTML = '<div class="alert alert-danger">El archivo es demasiado grande (máximo 5MB)</div>';
+                document.getElementById('estadoSubida').style.display = 'block';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('foto', file);
+
+            const btnSubir = document.getElementById('btnSubirFoto');
+            const btnOriginalHTML = btnSubir.innerHTML;
+            btnSubir.disabled = true;
+            btnSubir.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Subiendo...';
+
+            try {
+                const response = await fetch('api_subir_foto.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('estadoSubida').innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> Foto subida exitosamente. Recargando página...</div>';
+                    document.getElementById('estadoSubida').style.display = 'block';
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    document.getElementById('estadoSubida').innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> Error: ' + (data.error || 'No se pudo subir la foto') + '</div>';
+                    document.getElementById('estadoSubida').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('estadoSubida').innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> Error al subir la foto: ' + error.message + '</div>';
+                document.getElementById('estadoSubida').style.display = 'block';
+            } finally {
+                btnSubir.disabled = false;
+                btnSubir.innerHTML = btnOriginalHTML;
+            }
+        });
+    </script>

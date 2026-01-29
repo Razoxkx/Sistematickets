@@ -30,6 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $titulo = $_POST["titulo"] ?? "";
     $descripcion = $_POST["descripcion"] ?? "";
     $nombre_reportante = $_POST["nombre_reportante"] ?? "";
+    $nombre_reportante_username = $_POST["nombre_reportante_username"] ?? ""; // Username opcional si se seleccionó del autocomplete
     $responsable_asignado = $_POST["responsable_asignado"] ?? null;
     
     if (empty($titulo) || empty($descripcion) || empty($nombre_reportante) || empty($responsable_asignado)) {
@@ -39,8 +40,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Primero insertar con un número temporal
             $ticket_number_temp = "DCD" . uniqid();
             
+            // Si no hay username, usar el nombre completo como nombre_solicitante
+            $solicitante_final = !empty($nombre_reportante_username) ? $nombre_reportante_username : $nombre_reportante;
+            
             $stmt = $conexion->prepare("INSERT INTO tickets (ticket_number, titulo, descripcion, usuario_creador, nombre_solicitante, propietario, responsable) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$ticket_number_temp, $titulo, $descripcion, $_SESSION["user_id"], $nombre_reportante, $_SESSION["user_id"], $responsable_asignado]);
+            $stmt->execute([$ticket_number_temp, $titulo, $descripcion, $_SESSION["user_id"], $solicitante_final, $_SESSION["user_id"], $responsable_asignado]);
             
             // Obtener el ID del ticket insertado
             $ticket_id = $conexion->lastInsertId();
@@ -74,6 +78,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Crear Ticket</title>
     <script>
@@ -86,6 +91,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         })();
     </script>
+    <style>
+        .autocomplete-container {
+            position: relative;
+        }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-top: none;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .autocomplete-list.show {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--bs-border-color);
+        }
+        .autocomplete-item:hover {
+            background-color: var(--bs-secondary-bg);
+        }
+        .autocomplete-item .username {
+            color: var(--bs-secondary);
+            font-size: 0.85em;
+            margin-left: 5px;
+        }
+        .autocomplete-item .role-badge {
+            margin-left: 5px;
+            font-size: 0.75em;
+        }
+    </style>
 </head>
 <body>
     <?php include 'includes/sidebar.php'; ?>
@@ -112,9 +156,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <?php endif; ?>
                         
                         <form method="POST" action="">
-                            <div class="mb-3">
+                            <div class="mb-3 autocomplete-container">
                                 <label for="nombre_reportante" class="form-label">Nombre de quién reporta el ticket</label>
-                                <input type="text" class="form-control" id="nombre_reportante" name="nombre_reportante" required placeholder="Nombre de la persona que reporta" value="<?php echo htmlspecialchars($_POST["nombre_reportante"] ?? ""); ?>">
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="nombre_reportante" 
+                                    name="nombre_reportante" 
+                                    required 
+                                    placeholder="Escribe nombre, usuario o email..."
+                                    autocomplete="off"
+                                    value="<?php echo htmlspecialchars($_POST["nombre_reportante"] ?? ""); ?>"
+                                >
+                                <div class="autocomplete-list" id="autocompleteList"></div>
+                                <input type="hidden" id="nombre_reportante_username" name="nombre_reportante_username" value="">
                             </div>
                             
                             <div class="mb-3">
@@ -151,5 +206,120 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+    <script>
+        const inputField = document.getElementById('nombre_reportante');
+        const autocompleteList = document.getElementById('autocompleteList');
+        const usernameHidden = document.getElementById('nombre_reportante_username');
+        let currentFocusIndex = -1;
+
+        // Evento para buscar usuarios mientras escribes
+        inputField.addEventListener('input', async function() {
+            const query = this.value.trim();
+            currentFocusIndex = -1;
+
+            if (query.length < 2) {
+                autocompleteList.classList.remove('show');
+                usernameHidden.value = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`api_buscar_usuarios.php?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (!data.usuarios || data.usuarios.length === 0) {
+                    autocompleteList.classList.remove('show');
+                    usernameHidden.value = '';
+                    return;
+                }
+
+                // Mostrar opciones de autocomplete
+                autocompleteList.innerHTML = '';
+                data.usuarios.forEach((usuario, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.innerHTML = `
+                        <strong>${escapeHtml(usuario.nombre_completo)}</strong>
+                        <span class="username">@${escapeHtml(usuario.username)}</span>
+                        <span class="role-badge badge bg-secondary">${escapeHtml(usuario.role)}</span>
+                    `;
+                    div.addEventListener('click', function() {
+                        seleccionarUsuario(usuario);
+                    });
+                    div.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            seleccionarUsuario(usuario);
+                        }
+                    });
+                    autocompleteList.appendChild(div);
+                });
+                autocompleteList.classList.add('show');
+            } catch (error) {
+                console.error('Error al buscar usuarios:', error);
+                autocompleteList.classList.remove('show');
+            }
+        });
+
+        // Seleccionar usuario del autocomplete
+        function seleccionarUsuario(usuario) {
+            inputField.value = usuario.nombre_completo;
+            usernameHidden.value = usuario.username;
+            autocompleteList.classList.remove('show');
+        }
+
+        // Cerrar autocomplete al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (e.target !== inputField && !e.target.closest('.autocomplete-list')) {
+                autocompleteList.classList.remove('show');
+            }
+        });
+
+        // Navegar con teclado en el autocomplete
+        inputField.addEventListener('keydown', function(e) {
+            const items = autocompleteList.querySelectorAll('.autocomplete-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentFocusIndex++;
+                if (currentFocusIndex >= items.length) currentFocusIndex = 0;
+                setFocusOnItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentFocusIndex--;
+                if (currentFocusIndex < 0) currentFocusIndex = items.length - 1;
+                setFocusOnItem(items);
+            } else if (e.key === 'Enter' && currentFocusIndex >= 0 && currentFocusIndex < items.length) {
+                e.preventDefault();
+                items[currentFocusIndex].click();
+            }
+        });
+
+        function setFocusOnItem(items) {
+            items.forEach((item, index) => {
+                item.classList.toggle('bg-light', index === currentFocusIndex);
+            });
+            if (currentFocusIndex >= 0 && currentFocusIndex < items.length) {
+                items[currentFocusIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        // Función para escapar HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Validar que se haya seleccionado un usuario válido
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (inputField.value.trim() && !usernameHidden.value) {
+                // Permite enviar sin username (es opcional), pero se recomienda
+                console.warn('Se está creando un ticket sin usuario linkeado. El nombre se guardará como texto libre.');
+            }
+        });
+    </script>
 </html>

@@ -109,6 +109,24 @@ try {
         $stmt->execute();
         $comentario_nuevo = $stmt->fetch(PDO::FETCH_ASSOC);
         
+        // Cambio automático de estado: si está en "en conocimiento", pasar a "en proceso"
+        $stmt = $conexion->prepare("SELECT estado FROM tickets WHERE id = ?");
+        $stmt->execute([$ticket_id]);
+        $ticket_actual = $stmt->fetch(PDO::FETCH_ASSOC);
+        $estado_actual = $ticket_actual['estado'] ?? null;
+        
+        if ($estado_actual === "en conocimiento") {
+            $stmt_update = $conexion->prepare("UPDATE tickets SET estado = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
+            $stmt_update->execute(["en proceso", $ticket_id]);
+            
+            // Registrar cambio automático en historial
+            $stmt_historial = $conexion->prepare("
+                INSERT INTO historial_estados_tickets (ticket_id, estado_anterior, estado_nuevo, usuario_id)
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt_historial->execute([$ticket_id, "en conocimiento", "en proceso", $_SESSION["user_id"]]);
+        }
+        
         echo json_encode(["success" => true, "comentario" => $comentario_nuevo]);
     }
     
@@ -126,6 +144,12 @@ try {
         $stmt->execute([$ticket_id]);
         $ticket_actual = $stmt->fetch(PDO::FETCH_ASSOC);
         $estado_anterior = $ticket_actual['estado'] ?? null;
+        
+        // Validación: prevenir cambio manual a "sin abrir" (excepto si ya está en ese estado)
+        if ($nuevo_estado === "sin abrir" && $estado_anterior !== "sin abrir") {
+            echo json_encode(["error" => "No se puede cambiar un ticket a estado 'sin abrir' manualmente."]);
+            exit();
+        }
         
         // Actualizar estado
         $stmt = $conexion->prepare("UPDATE tickets SET estado = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");

@@ -81,19 +81,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nueva_estado"])) {
         $estado_anterior = $ticket["estado"];
         $estado_nuevo = $_POST["nueva_estado"];
         
-        // Actualizar estado en tickets
-        $stmt = $conexion->prepare("UPDATE tickets SET estado = ? WHERE id = ?");
-        $stmt->execute([$estado_nuevo, $ticket["id"]]);
-        
-        // Registrar cambio en historial
-        $stmt_historial = $conexion->prepare("
-            INSERT INTO historial_estados_tickets (ticket_id, estado_anterior, estado_nuevo, usuario_id)
-            VALUES (?, ?, ?, ?)
-        ");
-        $stmt_historial->execute([$ticket["id"], $estado_anterior, $estado_nuevo, $_SESSION["user_id"]]);
-        
-        $success = "Estado actualizado correctamente";
-        $ticket["estado"] = $estado_nuevo;
+        // Validación: prevenir cambio manual a "sin abrir" (excepto si ya está en ese estado)
+        if ($estado_nuevo === "sin abrir" && $estado_anterior !== "sin abrir") {
+            $error = "No se puede cambiar un ticket a estado 'sin abrir' manualmente. Este estado solo se asigna automáticamente al crear un ticket.";
+        } else {
+            // Actualizar estado en tickets
+            $stmt = $conexion->prepare("UPDATE tickets SET estado = ? WHERE id = ?");
+            $stmt->execute([$estado_nuevo, $ticket["id"]]);
+            
+            // Registrar cambio en historial
+            $stmt_historial = $conexion->prepare("
+                INSERT INTO historial_estados_tickets (ticket_id, estado_anterior, estado_nuevo, usuario_id)
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt_historial->execute([$ticket["id"], $estado_anterior, $estado_nuevo, $_SESSION["user_id"]]);
+            
+            $success = "Estado actualizado correctamente";
+            $ticket["estado"] = $estado_nuevo;
+        }
     } catch (PDOException $e) {
         $error = "Error al actualizar estado: " . $e->getMessage();
     }
@@ -181,6 +186,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nuevo_comentario"])) {
                         $stmt_mencion->execute([$proc["id"], $ticket["id"], $comentario_id]);
                     }
                 }
+            }
+            
+            // Cambio automático de estado: si está en "en conocimiento", pasar a "en proceso"
+            if ($ticket["estado"] === "en conocimiento") {
+                $stmt_update = $conexion->prepare("UPDATE tickets SET estado = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
+                $stmt_update->execute(["en proceso", $ticket["id"]]);
+                
+                // Registrar cambio automático en historial
+                $stmt_historial = $conexion->prepare("
+                    INSERT INTO historial_estados_tickets (ticket_id, estado_anterior, estado_nuevo, usuario_id)
+                    VALUES (?, ?, ?, ?)
+                ");
+                $stmt_historial->execute([$ticket["id"], "en conocimiento", "en proceso", $_SESSION["user_id"]]);
+                
+                $ticket["estado"] = "en proceso";
             }
             
             $success = "Comentario agregado correctamente";
@@ -934,6 +954,10 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                             <strong style="color: #667eea;">Creado por:</strong> 
                             <div style="margin-top: 4px; color: #555;"><?php echo htmlspecialchars($creator_nombre); ?></div>
                         </div>
+                        <div>
+                            <strong style="color: #667eea;">Responsable:</strong> 
+                            <div style="margin-top: 4px; color: #555;"><?php echo htmlspecialchars($responsable_nombre) ?: "No asignado"; ?></div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1010,7 +1034,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                     <?php endif; ?>
                                 </div>
                                 <div class="mt-2" id="texto-comentario-<?php echo $com['id']; ?>" style="line-height: 1.6;">
-                                    <?php echo nl2br(procesarMencionesTikets($com["comentario"])); ?>
+                                    <?php echo nl2br(procesarHashtagsContactos(procesarMencionesTikets($com["comentario"]))); ?>
                                 </div>
                                 
                                 <!-- Formulario edición -->
@@ -1531,6 +1555,8 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                             <div class="d-flex gap-2">
                                 <select id="modalEstado" name="nueva_estado" class="form-select">
                                     <?php foreach ($estados as $est): ?>
+                                        <!-- No permitir cambiar a "sin abrir" manualmente, excepto si ya está en ese estado -->
+                                        <?php if ($est === "sin abrir" && $ticket["estado"] !== "sin abrir") continue; ?>
                                         <option value="<?php echo htmlspecialchars($est); ?>" <?php echo $ticket["estado"] === $est ? "selected" : ""; ?>>
                                             <?php echo ucfirst(htmlspecialchars($est)); ?>
                                         </option>

@@ -2,8 +2,9 @@
 session_start();
 require_once 'includes/config.php';
 
-// Solo admin puede acceder
-if (($_SESSION["role"] ?? "") !== "admin") {
+// Solo admin y tisupport pueden acceder
+$permisos = ['admin', 'tisupport'];
+if (!in_array($_SESSION["role"] ?? "", $permisos)) {
     http_response_code(403);
     echo json_encode(['error' => 'Acceso denegado']);
     exit();

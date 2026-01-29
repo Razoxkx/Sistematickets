@@ -8,8 +8,9 @@ if (!isset($_SESSION["user_id"])) {
     exit();
 }
 
-// Verificar permisos: solo admin
-if (($_SESSION["role"] ?? "") !== "admin") {
+// Verificar permisos: admin y tisupport
+$permisos = ['admin', 'tisupport'];
+if (!in_array($_SESSION["role"] ?? "", $permisos)) {
     header("Location: dashboard.php");
     exit();
 }
@@ -423,18 +424,18 @@ try {
         <?php endif; ?>
     </div>
 
-    <!-- Modal para ingresar contraseña de admin -->
+    <!-- Modal para ingresar contraseña para revelar -->
     <div class="modal fade" id="modalPassword" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="bi bi-shield-lock"></i> Verificación de Administrador
+                        <i class="bi bi-shield-lock"></i> Verificación de Seguridad
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Para revelar esta contraseña, debes ingresar tu contraseña de administrador:</p>
+                    <p>Para revelar esta contraseña, debes ingresar tu contraseña:</p>
                     <div class="mb-3">
                         <label for="adminPassword" class="form-label">Tu Contraseña</label>
                         <input type="password" class="form-control modal-password-input" id="adminPassword" placeholder="Ingresa tu contraseña">

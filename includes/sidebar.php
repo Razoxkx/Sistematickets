@@ -203,9 +203,35 @@ require_once 'config.php';
 
     .user-info {
         display: flex;
-        flex-direction: column;
+        align-items: center;
         gap: 10px;
         margin-bottom: 10px;
+    }
+
+    .user-photo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        flex-shrink: 0;
+    }
+
+    .sidebar.collapsed .user-photo {
+        width: 32px;
+        height: 32px;
+    }
+
+    .user-info-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .sidebar.collapsed .user-info-text {
+        display: none;
     }
 
     .user-name {
@@ -214,10 +240,6 @@ require_once 'config.php';
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-
-    .sidebar.collapsed .user-name {
-        display: none;
     }
 
     .user-role {
@@ -263,12 +285,39 @@ require_once 'config.php';
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="sidebar-logo">
-            <div class="user-info" style="margin: 0; gap: 5px;">
-                <div class="user-name" title="<?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>">
-                    <?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>
-                </div>
-                <div class="user-role" style="font-size: 10px;">
-                    <?php echo traducirRol($_SESSION["role"] ?? "viewer"); ?>
+            <div class="user-info">
+                <?php
+                // Obtener la foto de perfil del usuario actual
+                $stmt_foto = $conexion->prepare("SELECT foto_perfil FROM users WHERE id = ?");
+                $stmt_foto->execute([$_SESSION["user_id"] ?? 0]);
+                $foto_data = $stmt_foto->fetch(PDO::FETCH_ASSOC);
+                $foto_perfil = $foto_data['foto_perfil'] ?? null;
+                ?>
+                
+                <?php if (!empty($foto_perfil) && file_exists($foto_perfil)): ?>
+                    <a href="perfil_usuario.php?username=<?php echo urlencode($_SESSION['username']); ?>" style="text-decoration: none;">
+                        <img src="<?php echo htmlspecialchars($foto_perfil); ?>" 
+                             alt="<?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>" 
+                             class="user-photo" 
+                             title="Ver perfil">
+                    </a>
+                <?php else: ?>
+                    <a href="perfil_usuario.php?username=<?php echo urlencode($_SESSION['username']); ?>" style="text-decoration: none;">
+                        <div class="user-photo" style="display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                    </a>
+                <?php endif; ?>
+                
+                <div class="user-info-text">
+                    <a href="perfil_usuario.php?username=<?php echo urlencode($_SESSION['username']); ?>" style="text-decoration: none; color: inherit;">
+                        <div class="user-name" title="<?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>">
+                            <?php echo htmlspecialchars($_SESSION["username"] ?? ""); ?>
+                        </div>
+                    </a>
+                    <div class="user-role" style="font-size: 10px;">
+                        <?php echo traducirRol($_SESSION["role"] ?? "viewer"); ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -335,7 +384,9 @@ require_once 'config.php';
                 <span class="sidebar-nav-text">Usuarios</span>
             </a>
         </li>
+        <?php endif; ?>
 
+        <?php if (in_array($_SESSION["role"] ?? "", ['admin', 'tisupport'])): ?>
         <li class="sidebar-nav-item">
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'contactos.php') ? 'active' : ''; ?>" href="contactos.php" title="Contactos">
                 <span class="sidebar-nav-icon"><i class="bi bi-person-lines-fill"></i></span>
@@ -360,12 +411,7 @@ require_once 'config.php';
             </a>
         </li>
 
-        <li class="sidebar-nav-item">
-            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'perfil_usuario.php') ? 'active' : ''; ?>" href="perfil_usuario.php?username=<?php echo urlencode($_SESSION['username']); ?>" title="Mi Perfil">
-                <span class="sidebar-nav-icon"><i class="bi bi-person-circle"></i></span>
-                <span class="sidebar-nav-text">Mi Perfil</span>
-            </a>
-        </li>
+      
 
         <div class="sidebar-divider"></div>
     </ul>

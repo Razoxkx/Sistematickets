@@ -693,8 +693,7 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
 
 /* Estilos para menciones hasheadas */
 .ticket-mention,
-.activo-mention,
-.usuario-mention {
+.activo-mention {
     text-decoration: none;
     font-weight: 500;
     padding: 2px 6px;
@@ -747,24 +746,29 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
     background-color: rgba(32, 201, 151, 0.25);
 }
 
-/* Links de usuarios */
+/* Links de usuarios y contactos */
 .usuario-mention {
-    color: #0dcaf0;
-    background-color: rgba(13, 202, 240, 0.1);
+    color: #6f42c1;
+    background-color: rgba(111, 66, 193, 0.12);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
 }
 
 .usuario-mention:hover {
-    color: #06d6f7;
-    background-color: rgba(13, 202, 240, 0.2);
+    color: #5a32a3;
+    background-color: rgba(111, 66, 193, 0.2);
     text-decoration: underline;
 }
 
 :root[data-bs-theme="dark"] .usuario-mention {
-    color: #13c2c2;
-    background-color: rgba(19, 194, 194, 0.15);
+    color: #b197fc;
+    background-color: rgba(177, 151, 252, 0.15);
 }
 
 :root[data-bs-theme="dark"] .usuario-mention:hover {
-    color: #0ba5a8;
-    background-color: rgba(19, 194, 194, 0.25);
+    color: #c8a9ff;
+    background-color: rgba(177, 151, 252, 0.25);
 }

@@ -143,7 +143,7 @@ try {
                         </div>
                         <div class="mb-3">
                             <strong>Ubicación:</strong>
-                            <p class="text-muted"><?php echo htmlspecialchars($activo["ubicacion"] ?? "No especificada"); ?></p>
+                            <p class="text-muted"><?php echo nl2br(procesarHashtagsContactos(htmlspecialchars($activo["ubicacion"] ?? "No especificada"))); ?></p>
                         </div>
                         <div class="mb-3">
                             <strong>Propietario:</strong>
@@ -171,7 +171,7 @@ try {
             <?php if (!empty($activo["descripcion"])): ?>
                 <div class="info-section">
                     <h5><i class="bi bi-chat-left-text"></i> Descripción</h5>
-                    <p><?php echo nl2br(htmlspecialchars($activo["descripcion"])); ?></p>
+                    <p><?php echo nl2br(procesarHashtagsContactos(htmlspecialchars($activo["descripcion"]))); ?></p>
                 </div>
             <?php endif; ?>
             
