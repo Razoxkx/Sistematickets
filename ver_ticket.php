@@ -699,7 +699,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
         
         /* Estilos para Descripción del Caso - Light Mode */
         .ticket-descripcion-case {
-            padding: 30px 50px;
+            padding: 10px 20px;
         }
         
         .ticket-descripcion-case h5 {
@@ -719,9 +719,10 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
         }
         
         .descripcion-contenido p {
-            margin-bottom: 15px;
-            line-height: 1.8;
-            white-space: pre-wrap;
+            margin-bottom: 0;
+            line-height: 1.6;
+            white-space: normal;
+            word-wrap: break-word;
             color: #2c3e50;
             font-size: 1.05rem;
             font-weight: 500;
@@ -782,8 +783,14 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             background: white;
             border-left: 5px solid #667eea;
             border-radius: 8px;
-            padding: 30px;
-            margin-bottom: 30px;
+            padding-left: 20px;
+            padding-top: 15px;
+            padding-bottom: 15px;
+            padding-right: 20px;
+            margin-bottom: 20px;
+            max-width: 1300px;
+            margin-left: auto;
+            margin-right: auto;
         }
         
         [data-bs-theme="dark"] .ticket-body-card {
@@ -902,7 +909,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
     
     <div class="container-fluid p-0">
         <!-- Alerts al inicio -->
-        <div style="padding: 20px 50px;">
+        <div style="">
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <?php echo htmlspecialchars($error); ?>
@@ -992,7 +999,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     <?php endif; ?>
                 </div>
                 <div class="descripcion-contenido">
-                    <p id="texto-descripcion"><?php echo htmlspecialchars($ticket["descripcion"]); ?></p>
+                    <div id="texto-descripcion" style="margin-bottom: 15px;"><?php echo nl2br(procesarHashtagsContactos(procesarMencionesTikets(htmlspecialchars($ticket["descripcion"])))); ?></div>
                     <small class="texto-muted-case"><i class="bi bi-clock"></i> Última modificación: <?php echo formatearFechaHora($ticket["fecha_ultima_modificacion"]); ?></small>
                 </div>
             </div>

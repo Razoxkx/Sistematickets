@@ -201,8 +201,9 @@ function getEstadoColor($estado) {
         .ticket-list-row:hover { background-color: #f8f9fa; }
         [data-bs-theme="dark"] .ticket-list-row:hover { background-color: #2d3035; }
         .ticket-list-row input[type="checkbox"] { cursor: pointer; }
-        .table-responsive { margin: 0 -12px; padding: 0 12px; }
+        .table-responsive { margin: 0 -12px; padding: 0 12px;}
         .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        
     </style>
     <script>
         (function() {

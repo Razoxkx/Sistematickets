@@ -1,6 +1,6 @@
 <?php
 $host = "localhost";
-$db   = "test";
+$db   = "jupiter";
 $user = "root";
 $pass = "r652Is-scVT1HX3@";
 $port = 8889;

@@ -359,7 +359,7 @@ try {
                             url.searchParams.delete('buscar');
                         }
                         window.location.search = url.search;
-                    }, 500);
+                    }, 1000);
                 });
             }
         });

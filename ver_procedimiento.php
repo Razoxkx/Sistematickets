@@ -108,10 +108,12 @@ try {
             font-size: 16px;
             max-width: 100%;
             margin: 0 0 30px 0;
-            white-space: pre-wrap;
+            white-space: pre-line;
             word-wrap: break-word;
+            overflow-x: auto;
             border-left: 5px solid #667eea;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: left;
         }
         
         [data-bs-theme="dark"] .cuerpo-procedimiento {
@@ -240,7 +242,16 @@ try {
             <!-- Contenido -->
             <h3 class="mb-3"><i class="bi bi-file-text"></i> Contenido</h3>
             <div class="cuerpo-procedimiento">
-                <?php echo htmlspecialchars($procedimiento["cuerpo"]); ?>
+                <?php 
+                // Procesar el contenido para mejorar la alineación
+                $contenido = htmlspecialchars($procedimiento["cuerpo"]);
+                // Dividir por líneas y limpiar espacios en blanco
+                $lineas = explode("\n", $contenido);
+                $contenido_procesado = implode("\n", array_map('trim', $lineas));
+                // Eliminar líneas vacías al inicio y final
+                $contenido_procesado = trim($contenido_procesado);
+                echo $contenido_procesado;
+                ?>
             </div>
             
             <!-- Menciones -->

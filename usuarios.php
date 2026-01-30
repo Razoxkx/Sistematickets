@@ -284,6 +284,9 @@ if (isset($_GET["editar"])) {
                                                 <?php endif; ?>
                                             </td>
                                             <td>
+                                                <a href="perfil_usuario.php?username=<?php echo urlencode($user['username']); ?>" class="btn btn-sm btn-info" title="Ver perfil">
+                                                    <i class="bi bi-person"></i> Perfil
+                                                </a>
                                                 <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalEditarUsuario" onclick="cargarDatosEditar(<?php echo htmlspecialchars(json_encode($user)); ?>)">
                                                     <i class="bi bi-pencil"></i> Editar
                                                 </button>

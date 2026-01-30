@@ -44,25 +44,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
     $correo = trim($_POST["correo"] ?? "");
     $contraseña = $_POST["contraseña"] ?? "";
     $descripcion = trim($_POST["descripcion"] ?? "");
+    $contraseña_admin = $_POST["contraseña_admin"] ?? "";
     
     if (empty($plataforma) || empty($correo) || empty($contraseña)) {
         $error = "Plataforma, correo y contraseña son obligatorios";
+    } elseif (empty($contraseña_admin)) {
+        $error = "Debes ingresar tu contraseña para confirmar los cambios";
     } else {
         try {
-            $stmt = $conexion->prepare("
+            // Obtener la contraseña hasheada del usuario actual
+            $stmt_user = $conexion->prepare("SELECT contrasena FROM users WHERE id = ?");
+            $stmt_user->execute([$_SESSION["user_id"]]);
+            $usuario = $stmt_user->fetch(PDO::FETCH_ASSOC);
+            
+            // Verificar la contraseña ingresada
+            if (!$usuario || !password_verify($contraseña_admin, $usuario["contrasena"])) {
+                $error = "Contraseña incorrecta. No puedes realizar cambios sin validar tu identidad.";
+            } else {
+                $stmt = $conexion->prepare("
                 UPDATE cuentas_servicio 
                 SET plataforma = ?, correo = ?, contraseña = ?, descripcion = ?, fecha_ultima_modificacion = NOW()
                 WHERE id = ?
             ");
-            $stmt->execute([$plataforma, $correo, $contraseña, $descripcion, $cuenta_id]);
-            
-            $success = "Cuenta actualizada correctamente";
-            
-            // Recargar datos
-            $stmt = $conexion->prepare("SELECT * FROM cuentas_servicio WHERE id = ?");
-            $stmt->execute([$cuenta_id]);
-            $cuenta = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+                $stmt->execute([$plataforma, $correo, $contraseña, $descripcion, $cuenta_id]);
+                
+                $success = "Cuenta actualizada correctamente";
+                
+                // Recargar datos
+                $stmt = $conexion->prepare("SELECT * FROM cuentas_servicio WHERE id = ?");
+                $stmt->execute([$cuenta_id]);
+                $cuenta = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
         } catch (PDOException $e) {
             $error = "Error al actualizar la cuenta: " . $e->getMessage();
         }
@@ -266,6 +278,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
                                     <textarea class="form-control" id="descripcion" name="descripcion" rows="4"><?php echo htmlspecialchars($cuenta["descripcion"]); ?></textarea>
                                 </div>
 
+                                <!-- Validación de seguridad: Contraseña del usuario actual -->
+                                <div class="mb-3 border-top pt-3">
+                                    <label for="contraseña_admin" class="form-label">
+                                        <i class="bi bi-shield-lock"></i> Tu Contraseña (Validación de Seguridad) <span class="text-danger">*</span>
+                                    </label>
+                                    <small class="text-muted d-block mb-2">Debes ingresar tu contraseña para confirmar los cambios</small>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="contraseña_admin" name="contraseña_admin" required placeholder="Ingresa tu contraseña">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordAdmin()">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <!-- Información de auditoría -->
                                 <div class="bg-light p-3 rounded mb-3">
                                     <small class="text-muted">
@@ -313,6 +339,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
     <script>
         function togglePassword() {
             const input = document.getElementById('contraseña');
+            if (input.type === 'password') {
+                input.type = 'text';
+            } else {
+                input.type = 'password';
+            }
+        }
+
+        function togglePasswordAdmin() {
+            const input = document.getElementById('contraseña_admin');
             if (input.type === 'password') {
                 input.type = 'text';
             } else {

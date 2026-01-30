@@ -24,9 +24,7 @@ try {
     $params = [];
     
     if (!empty($busqueda)) {
-        $where .= " AND (titulo LIKE ? OR cuerpo LIKE ? OR id_procedimiento LIKE ?)";
-        $params[] = '%' . $busqueda . '%';
-        $params[] = '%' . $busqueda . '%';
+        $where .= " AND titulo LIKE ?";
         $params[] = '%' . $busqueda . '%';
     }
     
@@ -139,7 +137,7 @@ try {
                         <div class="row g-2">
                             <div class="col-md-8">
                                 <input type="text" id="searchProcedimientos" class="form-control" 
-                                       placeholder="Buscar por título, ID o contenido..." 
+                                       placeholder="Buscar por título..." 
                                        value="<?php echo htmlspecialchars($busqueda); ?>">
                             </div>
                             <div class="col-md-4">
@@ -239,7 +237,7 @@ try {
                     }
                     
                     window.location.search = url.search;
-                }, 500);
+                }, 1000);
             }
             
             searchInput.addEventListener('input', updateSearch);

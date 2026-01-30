@@ -106,7 +106,7 @@ try {
         // SECCIÓN: ACTIVOS
         elseif ($seccion === "activos") {
             $where = "a.propietario = ?";
-            $params = [$usuario_perfil["id"]];
+            $params = [$usuario_busca];
             
             if (!empty($busqueda)) {
                 $where .= " AND (a.rfk LIKE ? OR a.titulo LIKE ? OR a.descripcion LIKE ?)";
