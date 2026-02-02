@@ -70,12 +70,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar_contacto
         $error = "El nombre completo es obligatorio";
     } else {
         try {
-            $stmt = $conexion->prepare("\
-                UPDATE users 
-                SET nombre_completo = ?, username = ?, email = ?, dpto_division = ?, role = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, $division_departamento, $role, $contacto_id]);
+            $stmt = $conexion->prepare("
+    UPDATE users 
+    SET nombre_completo = ?, username = ?, email = ?, numero_telefono = ?, dpto_division = ?, role = ?
+    WHERE id = ?
+");
+$stmt->execute([$nombre_completo, $nombre_usuario, $correo, $numero_telefono, $division_departamento, $role, $contacto_id]);
             header("Location: contactos.php?success=contacto_actualizado");
             exit();
         } catch (PDOException $e) {
@@ -122,22 +122,22 @@ try {
     $total_contactos = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
     // Obtener contactos con paginación desde users
-    if (!empty($busqueda_contacto)) {
-        $stmt = $conexion->prepare(
-            "SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, dpto_division AS division_departamento
-             , role
-             FROM users
-             WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
-             ORDER BY nombre_completo
-             LIMIT {$contactos_por_pagina} OFFSET {$offset}"
-        );
-        $search_term = "%{$busqueda_contacto}%";
-        $stmt->execute([$search_term, $search_term, $search_term, $search_term]);
-    } else {
-        $stmt = $conexion->prepare("SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, dpto_division AS division_departamento, role FROM users WHERE role = 'contacto' ORDER BY nombre_completo LIMIT {$contactos_por_pagina} OFFSET {$offset}");
-        $stmt->execute();
-    }
-    $contactos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if (!empty($busqueda_contacto)) {
+    $stmt = $conexion->prepare(
+        "SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, numero_telefono, dpto_division AS division_departamento, role
+         FROM users
+         WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
+         ORDER BY nombre_completo
+         LIMIT {$contactos_por_pagina} OFFSET {$offset}"
+    );
+    $search_term = "%{$busqueda_contacto}%";
+    $stmt->execute([$search_term, $search_term, $search_term, $search_term]);
+} else {
+    // Línea ~135: Consulta SIN búsqueda
+    $stmt = $conexion->prepare("SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, numero_telefono, dpto_division AS division_departamento, role FROM users WHERE role = 'contacto' ORDER BY nombre_completo LIMIT {$contactos_por_pagina} OFFSET {$offset}");
+    $stmt->execute();
+}
+$contactos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error = "Error al obtener contactos: " . $e->getMessage();
 }
@@ -360,10 +360,10 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                             <label for="correo_edit" class="form-label">Correo</label>
                             <input type="email" class="form-control" id="correo_edit" name="correo">
                         </div>
-                        <div class="mb-3">
+                       <div class="mb-3">
                             <label for="numero_telefono_edit" class="form-label">Número de Teléfono</label>
                             <input type="tel" class="form-control" id="numero_telefono_edit" name="numero_telefono">
-                        </div>
+                         </div>
                         <div class="mb-3">
                             <label for="division_departamento_edit" class="form-label">División/Departamento</label>
                             <input type="text" class="form-control" id="division_departamento_edit" name="division_departamento">

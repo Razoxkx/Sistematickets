@@ -17,6 +17,19 @@ if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
 
 $error = "";
 $success = "";
+$ticket_padre = null;
+$ticket_padre_id = isset($_GET["padre"]) ? intval($_GET["padre"]) : null;
+
+// Si viene con parámetro padre, obtener datos del ticket padre
+if ($ticket_padre_id) {
+    try {
+        $stmt = $conexion->prepare("SELECT id, ticket_number, titulo FROM tickets WHERE id = ?");
+        $stmt->execute([$ticket_padre_id]);
+        $ticket_padre = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $ticket_padre_id = null;
+    }
+}
 
 // Obtener lista de usuarios soporte TI y admin para asignar
 try {
@@ -32,6 +45,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nombre_reportante = $_POST["nombre_reportante"] ?? "";
     $nombre_reportante_username = $_POST["nombre_reportante_username"] ?? ""; // Username opcional si se seleccionó del autocomplete
     $responsable_asignado = $_POST["responsable_asignado"] ?? null;
+    $ticket_padre_id_post = isset($_POST["ticket_padre_id"]) ? intval($_POST["ticket_padre_id"]) : null;
     
     if (empty($titulo) || empty($descripcion) || empty($nombre_reportante) || empty($responsable_asignado)) {
         $error = "El título, descripción, nombre de quién reporta y responsable son obligatorios";
@@ -43,8 +57,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Si no hay username, usar el nombre completo como nombre_solicitante
             $solicitante_final = !empty($nombre_reportante_username) ? $nombre_reportante_username : $nombre_reportante;
             
-            $stmt = $conexion->prepare("INSERT INTO tickets (ticket_number, titulo, descripcion, usuario_creador, nombre_solicitante, propietario, responsable) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$ticket_number_temp, $titulo, $descripcion, $_SESSION["user_id"], $solicitante_final, $_SESSION["user_id"], $responsable_asignado]);
+            $stmt = $conexion->prepare("INSERT INTO tickets (ticket_padre_id, ticket_number, titulo, descripcion, usuario_creador, nombre_solicitante, propietario, responsable) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$ticket_padre_id_post, $ticket_number_temp, $titulo, $descripcion, $_SESSION["user_id"], $solicitante_final, $_SESSION["user_id"], $responsable_asignado]);
             
             // Obtener el ID del ticket insertado
             $ticket_id = $conexion->lastInsertId();
@@ -58,11 +72,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             // Agregar comentario inicial con el nombre del reportante
             $comentario_inicial = "Ticket reportado por: " . htmlspecialchars($nombre_reportante);
+            if ($ticket_padre_id_post) {
+                $comentario_inicial .= " (Sub tarea)";
+            }
             $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario) VALUES (?, ?, ?)");
             $stmt->execute([$ticket_id, $_SESSION["user_id"], $comentario_inicial]);
             
             // Redirigir a tickets.php después de crear exitosamente
-            header("Location: tickets.php?success=creado");
+            if ($ticket_padre_id_post) {
+                header("Location: ver_ticket.php?id=" . $ticket_padre_id_post . "&success=ticket_hijo_creado");
+            } else {
+                header("Location: tickets.php?success=creado");
+            }
             exit();
             
         } catch (PDOException $e) {
@@ -139,7 +160,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="col-md-10 offset-md-1">
                 <div class="card shadow">
                     <div class="card-body">
-                        <h2 class="card-title mb-4">Crear Nuevo Ticket</h2>
+                        <h2 class="card-title mb-4">
+                            <?php if ($ticket_padre): ?>
+                                Crear Sub tarea
+                            <?php else: ?>
+                                Crear Nuevo Ticket
+                            <?php endif; ?>
+                        </h2>
+
+                        <?php if ($ticket_padre): ?>
+                            <div class="alert alert-info mb-3">
+                                <strong>Ticket Padre:</strong> 
+                                <a href="ver_ticket.php?id=<?php echo htmlspecialchars($ticket_padre["id"]); ?>" target="_blank">
+                                    <?php echo htmlspecialchars($ticket_padre["ticket_number"] . " - " . $ticket_padre["titulo"]); ?>
+                                </a>
+                            </div>
+                        <?php endif; ?>
                         
                         <?php if (!empty($error)): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -156,6 +192,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <?php endif; ?>
                         
                         <form method="POST" action="">
+                            <?php if ($ticket_padre): ?>
+                                <input type="hidden" name="ticket_padre_id" value="<?php echo $ticket_padre["id"]; ?>">
+                            <?php endif; ?>
+                            
                             <div class="mb-3 autocomplete-container">
                                 <label for="nombre_reportante" class="form-label">Nombre de quién reporta el ticket</label>
                                 <input 

@@ -293,7 +293,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
                                 </div>
 
                                 <!-- Información de auditoría -->
-                                <div class="bg-light p-3 rounded mb-3">
+                                <div class="bg-dark p-3 rounded mb-3">
                                     <small class="text-muted">
                                         <i class="bi bi-clock-history"></i> 
                                         Creado: <?php echo formatearFechaHora($cuenta["fecha_creacion"]); ?><br>

@@ -100,29 +100,37 @@ $columna_orden = $orden_map[$orden];
 // Obtener conteos por estado
 $conteos_estado = [];
 foreach (['sin abrir', 'en conocimiento', 'en proceso', 'pendiente de cierre'] as $est) {
-    $stmt_conteo = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 0 AND estado = ?");
+    $stmt_conteo = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 0 AND estado = ? AND ticket_padre_id IS NULL");
     $stmt_conteo->execute([$est]);
     $conteos_estado[$est] = $stmt_conteo->fetch(PDO::FETCH_ASSOC)['total'];
 }
 
 // Obtener conteo de tickets cerrados
-$stmt_conteo_cerrados = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 1");
+$stmt_conteo_cerrados = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 1 AND ticket_padre_id IS NULL");
 $stmt_conteo_cerrados->execute();
 $conteo_cerrados = $stmt_conteo_cerrados->fetch(PDO::FETCH_ASSOC)['total'];
 
 try {
     // Contar total de tickets
-    $where = "es_cerrado = 0";
-    $params = [];
-    
-    // Filtro para mis tickets
+    // Si es "mis tickets", mostrar padre e hijo; si no, solo mostrar padre
     if (!empty($mis_tickets) && $mis_tickets === "1") {
-        $where .= " AND responsable = ?";
+        // Mostrar tickets padre Y tickets hijo que le pertenecen
+        $where = "t.es_cerrado = 0 AND (t.ticket_padre_id IS NULL OR t.responsable = ?)";
+        $params = [$_SESSION["user_id"]];
+    } else {
+        // Solo mostrar tickets padre (lista general)
+        $where = "t.es_cerrado = 0 AND t.ticket_padre_id IS NULL";
+        $params = [];
+    }
+    
+    // Filtro para mis tickets (responsable)
+    if (!empty($mis_tickets) && $mis_tickets === "1") {
+        $where .= " AND t.responsable = ?";
         $params[] = $_SESSION["user_id"];
     }
     
     if (!empty($estado_filtro)) {
-        $where .= " AND estado = ?";
+        $where .= " AND t.estado = ?";
         $params[] = $estado_filtro;
     }
     
@@ -137,7 +145,7 @@ try {
             
             if ($user_encontrado) {
                 // Buscar tickets donde el usuario es responsable o fue creador
-                $where .= " AND (responsable = ? OR usuario_creador = ?)";
+                $where .= " AND (t.responsable = ? OR t.usuario_creador = ?)";
                 $params[] = $user_encontrado["id"];
                 $params[] = $user_encontrado["id"];
             } else {
@@ -146,22 +154,24 @@ try {
             }
         } else {
             // Búsqueda normal
-            $where .= " AND (ticket_number LIKE ? OR titulo LIKE ? OR nombre_solicitante LIKE ?)";
+            $where .= " AND (t.ticket_number LIKE ? OR t.titulo LIKE ? OR t.nombre_solicitante LIKE ?)";
             $params[] = '%' . $busqueda . '%';
             $params[] = '%' . $busqueda . '%';
             $params[] = '%' . $busqueda . '%';
         }
     }
     
-    $stmt_count = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE " . $where);
+    $stmt_count = $conexion->prepare("SELECT COUNT(*) as total FROM tickets t WHERE " . $where);
     $stmt_count->execute($params);
     $total_tickets = $stmt_count->fetch(PDO::FETCH_ASSOC)['total'];
     
     // Obtener tickets
     $stmt = $conexion->prepare("
-        SELECT t.*, u.username as creador_nombre
+        SELECT t.*, u.username as creador_nombre,
+               tp.ticket_number as padre_numero
         FROM tickets t
         JOIN users u ON t.usuario_creador = u.id
+        LEFT JOIN tickets tp ON t.ticket_padre_id = tp.id
         WHERE " . $where . "
         ORDER BY " . $columna_orden . " " . $direccion . "
         LIMIT " . intval($tickets_por_pagina) . " OFFSET " . intval($offset) . "
@@ -288,7 +298,12 @@ function getEstadoColor($estado) {
                             <?php foreach ($tickets as $ticket): ?>
                             <tr class="ticket-list-row" onclick="if(event.target.tagName !== 'INPUT') window.location='ver_ticket.php?id=<?php echo htmlspecialchars($ticket["id"]); ?>'">
                                 <td onclick="event.stopPropagation();"><input type="checkbox" class="ticket-checkbox" value="<?php echo $ticket['id']; ?>"></td>
-                                <td><strong><?php echo htmlspecialchars($ticket["ticket_number"]); ?></strong></td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($ticket["ticket_number"]); ?></strong>
+                                    <?php if ($ticket["ticket_padre_id"]): ?>
+                                        <br><small style="color: #17a2b8;"><i class="bi bi-diagram-3"></i> Sub tarea de: <a href="ver_ticket.php?id=<?php echo $ticket["ticket_padre_id"]; ?>" style="color: #17a2b8;"><?php echo htmlspecialchars($ticket["padre_numero"]); ?></a></small>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($ticket["titulo"]); ?></td>
                                 <td><span class="badge bg-<?php echo getEstadoColor($ticket["estado"]); ?>"><?php echo ucfirst(htmlspecialchars($ticket["estado"])); ?></span></td>
                                 <td><?php echo htmlspecialchars($ticket["nombre_solicitante"] ?? "N/A"); ?></td>

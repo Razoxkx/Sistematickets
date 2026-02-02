@@ -2,47 +2,35 @@
 session_start();
 require_once 'includes/config.php';
 
-// Verificar si el usuario está logueado y tiene permisos (admin o tisupport)
-$permisos = ['admin', 'tisupport'];
-if (!isset($_SESSION["user_id"]) || !in_array($_SESSION["role"] ?? "", $permisos)) {
+// Verificar permisos
+if (!isset($_SESSION["user_id"]) || !in_array($_SESSION["role"] ?? "", ['admin', 'tisupport'])) {
+    http_response_code(403);
     echo json_encode(['error' => 'No autorizado']);
     exit();
 }
 
-$busqueda = isset($_GET["q"]) ? trim($_GET["q"]) : "";
+$q = isset($_GET['q']) ? trim($_GET['q']) : '';
 
-if (empty($busqueda)) {
+if (empty($q)) {
     echo json_encode(['contactos' => []]);
     exit();
 }
 
 try {
-    // Buscar en users con role = 'contacto' para mantener solo una tabla
-    $stmt = $conexion->prepare(
-        "SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, dpto_division AS division_departamento, role
-         FROM users
-         WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
-         ORDER BY nombre_completo"
-    );
-    $search_term = "%{$busqueda}%";
+    $search_term = "%{$q}%";
+    $stmt = $conexion->prepare("
+        SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, numero_telefono, dpto_division AS division_departamento, role
+        FROM users
+        WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
+        ORDER BY nombre_completo
+        LIMIT 50
+    ");
     $stmt->execute([$search_term, $search_term, $search_term, $search_term]);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Mantener compatibilidad con la estructura anterior: incluir numero_telefono si existe en users, sino cadena vacía
-    $contactos = array_map(function($r) {
-        return [
-            'id' => $r['id'],
-            'nombre_completo' => $r['nombre_completo'] ?? '',
-            'nombre_usuario' => $r['nombre_usuario'] ?? '',
-            'correo' => $r['correo'] ?? '',
-            'numero_telefono' => $r['numero_telefono'] ?? '',
-            'division_departamento' => $r['division_departamento'] ?? '',
-            'role' => $r['role'] ?? 'contacto'
-        ];
-    }, $rows);
-
+    $contactos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
     echo json_encode(['contactos' => $contactos]);
 } catch (PDOException $e) {
+    http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }
 ?>

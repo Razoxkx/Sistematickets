@@ -51,6 +51,14 @@ try {
         exit();
     }
     
+    // Si es una subtarea, obtener datos del ticket padre
+    $ticket_padre = null;
+    if ($ticket["ticket_padre_id"]) {
+        $stmt = $conexion->prepare("SELECT id, ticket_number, titulo FROM tickets WHERE id = ?");
+        $stmt->execute([$ticket["ticket_padre_id"]]);
+        $ticket_padre = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
     // Si el ticket está en estado "sin abrir", cambiar a "en conocimiento" automáticamente
     if ($ticket["estado"] === "sin abrir") {
         $stmt = $conexion->prepare("UPDATE tickets SET estado = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
@@ -70,6 +78,16 @@ try {
     ");
     $stmt->execute([$ticket["id"]]);
     $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Obtener tickets hijo
+    $stmt = $conexion->prepare("
+        SELECT id, ticket_number, titulo, estado, responsable, fecha_creacion
+        FROM tickets
+        WHERE ticket_padre_id = ?
+        ORDER BY fecha_creacion DESC
+    ");
+    $stmt->execute([$ticket["id"]]);
+    $tickets_hijo = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
     $error = "Error al obtener el ticket: " . $e->getMessage();
@@ -969,7 +987,10 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                 </div>
                 
                 <!-- Derecha: Botón Gestión Discreto -->
-                <div class="col-lg-5" style="display: flex; align-items: flex-start; justify-content: flex-end; gap: 10px;">
+                <div class="col-lg-5" style="display: flex; align-items: flex-start; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+                    <a href="crear_ticket.php?padre=<?php echo $ticket["id"]; ?>" class="btn btn-sm btn-outline-info" title="Crear ticket hijo">
+                        <i class="bi bi-plus-circle"></i> Sub tarea
+                    </a>
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalGestion" title="Gestionar ticket" style="padding: 0.4rem 0.8rem;">
                         <i class="bi bi-sliders"></i> Gestión
                     </button>
@@ -1003,6 +1024,78 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     <small class="texto-muted-case"><i class="bi bi-clock"></i> Última modificación: <?php echo formatearFechaHora($ticket["fecha_ultima_modificacion"]); ?></small>
                 </div>
             </div>
+        
+        <!-- Indicador de Subtarea -->
+        <?php if ($ticket_padre): ?>
+        <div style="padding: 0 50px; margin-bottom: 20px;">
+            <div class="alert alert-info" role="alert" style="margin-bottom: 0; border-left: 5px solid #FF5454; background: linear-gradient(135deg, rgba(255, 84, 84, 0.1) 0%, rgba(255, 84, 84, 0.05) 100%);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-diagram-3" style="font-size: 1.3rem; color: #FF5454;"></i>
+                    <div>
+                        <strong style="color: #FF5454;">Sub tarea de ticket:</strong>
+                        <a href="ver_ticket.php?id=<?php echo htmlspecialchars($ticket_padre["id"]); ?>" style="color: #0056b3; text-decoration: none; font-weight: 600; margin-left: 5px;">
+                            <?php echo htmlspecialchars($ticket_padre["ticket_number"] . " - " . $ticket_padre["titulo"]); ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+            
+            <!-- Tickets Hijo -->
+            <?php if (!empty($tickets_hijo)): ?>
+            <div class="ticket-body-card" style="border-left-color: #17a2b8; background: linear-gradient(135deg, rgba(23, 162, 184, 0.08) 0%, rgba(23, 162, 184, 0.04) 100%);">
+                <h5 style="margin-bottom: 20px; color: #17a2b8;"><i class="bi bi-diagram-3"></i> <strong>Sub tarea (<?php echo count($tickets_hijo); ?>)</strong></h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr style="background-color: rgba(23, 162, 184, 0.1);">
+                                <th>Número</th>
+                                <th>Título</th>
+                                <th>Estado</th>
+                                <th>Responsable</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($tickets_hijo as $hijo): ?>
+                            <tr>
+                                <td><strong><?php echo htmlspecialchars($hijo["ticket_number"]); ?></strong></td>
+                                <td><?php echo htmlspecialchars(substr($hijo["titulo"], 0, 40) . (strlen($hijo["titulo"]) > 40 ? "..." : "")); ?></td>
+                                <td>
+                                    <span class="badge bg-<?php 
+                                        echo match($hijo["estado"]) {
+                                            'sin abrir' => 'secondary',
+                                            'en conocimiento' => 'info',
+                                            'en proceso' => 'warning',
+                                            'ticket cerrado' => 'success',
+                                            'pendiente de cierre' => 'danger',
+                                            default => 'secondary'
+                                        };
+                                    ?>">
+                                        <?php echo htmlspecialchars($hijo["estado"]); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php 
+                                        $stmt_resp = $conexion->prepare("SELECT username FROM users WHERE id = ?");
+                                        $stmt_resp->execute([$hijo["responsable"]]);
+                                        $resp = $stmt_resp->fetch(PDO::FETCH_ASSOC);
+                                        echo htmlspecialchars($resp["username"] ?? "Sin asignar");
+                                    ?>
+                                </td>
+                                <td>
+                                    <a href="ver_ticket.php?id=<?php echo $hijo["id"]; ?>" class="btn btn-sm btn-outline-info">
+                                        <i class="bi bi-arrow-up-right"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
             
             <!-- Agregar Comentario -->
             <div class="ticket-body-card">
