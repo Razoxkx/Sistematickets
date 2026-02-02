@@ -116,7 +116,7 @@ if (!empty($busqueda)) {
         }
         
         .resultado-card {
-            transition: transform 0.2s, box-shadow 0.2s;
+            
         }
         
         .resultado-card:hover {

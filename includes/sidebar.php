@@ -26,7 +26,7 @@ require_once 'config.php';
         background: #1a1a1a;
         color: #fff;
         overflow-y: auto;
-        transition: width 0.3s ease;
+        
         z-index: 1000;
         box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     }
@@ -100,7 +100,7 @@ require_once 'config.php';
         padding: 12px 15px;
         color: inherit;
         text-decoration: none;
-        transition: all 0.3s ease;
+        
         border-left: 3px solid transparent;
     }
 
@@ -250,7 +250,7 @@ require_once 'config.php';
     /* Main content */
     body {
         margin-left: var(--sidebar-width);
-        transition: margin-left 0.3s ease;
+        
     }
 
     body.sidebar-collapsed {

@@ -116,7 +116,7 @@ try {
         }
 
         .cuenta-card {
-            transition: transform 0.2s, box-shadow 0.2s;
+            
         }
 
         .cuenta-card:hover {

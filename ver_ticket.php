@@ -951,7 +951,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 15px;">
                         <h2 style="margin: 0; color: #667eea;"><?php echo htmlspecialchars($ticket["ticket_number"]); ?></h2>
                         <button class="btn btn-sm btn-outline-secondary" id="copyTicketBtn" onclick="copiarNumeroTicket('<?php echo htmlspecialchars($ticket["ticket_number"]); ?>')" 
-                                style="padding: 0.4rem 0.5rem; opacity: 0.9; transition: all 0.2s;" 
+                                style="padding: 0.4rem 0.5rem; opacity: 0.9;" 
                                 title="Copiar número de ticket"
                                 data-bs-toggle="tooltip" 
                                 data-bs-title="Copiar número">

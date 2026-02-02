@@ -1,3 +1,11 @@
+/* DESACTIVAR TODAS LAS ANIMACIONES */
+* {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+}
+
 /* Estilos para modo oscuro */
 :root[data-bs-theme="dark"] {
     --bs-body-bg: #212529;
@@ -46,7 +54,6 @@
 body {
     background-color: var(--bs-body-bg);
     color: var(--bs-body-color);
-    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .ticket-header {
@@ -336,7 +343,6 @@ textarea.form-control {
     border-radius: 3px;
     padding: 1px 4px;
     background-color: rgba(13, 110, 253, 0.1);
-    transition: all 0.2s ease;
 }
 
 .ticket-mention:hover {
@@ -380,13 +386,11 @@ textarea.form-control:focus {
 /* Iconos en modo claro */
 :root[data-bs-theme="light"] .bi {
     color: #212529;
-    transition: color 0.3s ease;
 }
 
 /* Iconos en modo oscuro */
 :root[data-bs-theme="dark"] .bi {
     color: #f8f9fa;
-    transition: color 0.3s ease;
 }
 
 /* Iconos en navbar */
@@ -551,7 +555,6 @@ h1 .bi, h2 .bi, h3 .bi, h4 .bi, h5 .bi, h6 .bi {
 a:hover .bi,
 button:hover .bi:not(.bi-moon):not(.bi-sun),
 .nav-link:hover .bi {
-    transition: color 0.2s ease;
 }
 
 /* Modal title icons */
@@ -573,7 +576,6 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
 }
 
 .navbar-brand .bi {
-    transition: transform 0.2s ease;
 }
 
 .navbar-brand:hover .bi {
@@ -584,7 +586,6 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
     font-weight: 500;
     margin: 0 5px;
     border-radius: 4px;
-    transition: all 0.2s ease;
 }
 
 .nav-link:hover {
@@ -594,7 +595,6 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
 
 .nav-link .bi {
     font-size: 1.1rem;
-    transition: color 0.2s ease;
 }
 
 /* Badges en navbar */
@@ -669,7 +669,6 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
 .form-select {
     border-radius: 8px;
     border: 2px solid #dee2e6;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .form-control:focus,
@@ -698,7 +697,6 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
     font-weight: 500;
     padding: 2px 6px;
     border-radius: 3px;
-    transition: all 0.2s ease;
     cursor: pointer;
 }
 
@@ -754,7 +752,6 @@ button:hover .bi:not(.bi-moon):not(.bi-sun),
     font-weight: 500;
     padding: 2px 6px;
     border-radius: 3px;
-    transition: all 0.2s ease;
 }
 
 .usuario-mention:hover {

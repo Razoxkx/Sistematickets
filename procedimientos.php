@@ -67,7 +67,7 @@ try {
         }
         
         .procedimiento-card {
-            transition: transform 0.2s, box-shadow 0.2s;
+            
             cursor: pointer;
         }
         

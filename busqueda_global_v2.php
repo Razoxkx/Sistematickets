@@ -188,7 +188,7 @@ if ($is_ajax) {
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Búsqueda Global</title>
     <style>
-        .resultado-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .resultado-card {  }
         .resultado-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     </style>
     <script>

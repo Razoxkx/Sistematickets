@@ -207,7 +207,7 @@ function getEstadoColor($estado) {
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Tickets</title>
     <style>
-        .ticket-list-row { border-bottom: 1px solid #dee2e6; padding: 15px 0; cursor: pointer; transition: background-color 0.2s; }
+        .ticket-list-row { border-bottom: 1px solid #dee2e6; padding: 15px 0; cursor: pointer; }
         .ticket-list-row:hover { background-color: #f8f9fa; }
         [data-bs-theme="dark"] .ticket-list-row:hover { background-color: #2d3035; }
         .ticket-list-row input[type="checkbox"] { cursor: pointer; }

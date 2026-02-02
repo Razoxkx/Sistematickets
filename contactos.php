@@ -43,10 +43,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear_contacto"
     } else {
         try {
             $stmt = $conexion->prepare("
-                INSERT INTO users (nombre_completo, username, email, dpto_division, role, password)
-                VALUES (?, ?, ?, ?, 'contacto', ?)
+                INSERT INTO users (nombre_completo, username, email, numero_telefono, dpto_division, role, password)
+                VALUES (?, ?, ?, ?, ?, 'contacto', ?)
             ");
-            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, $division_departamento, password_hash('', PASSWORD_BCRYPT)]);
+            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, '', $division_departamento, password_hash('', PASSWORD_BCRYPT)]);
             
             header("Location: contactos.php?success=contacto_creado");
             exit();

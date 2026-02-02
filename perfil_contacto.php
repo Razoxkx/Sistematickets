@@ -208,7 +208,7 @@ try {
             cursor: pointer;
             border-bottom: 3px solid transparent;
             padding: 1rem 1.5rem;
-            transition: all 0.3s;
+            
             font-weight: 500;
             color: #6c757d;
         }
@@ -239,7 +239,7 @@ try {
         }
         
         .card-item {
-            transition: transform 0.2s, box-shadow 0.2s;
+            
             border: 1px solid #e9ecef;
             border-radius: 8px;
         }

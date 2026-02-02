@@ -98,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Cambiar Contraseña</title>
     <style>
         body {
-            transition: opacity 0.6s ease-out;
+            
         }
         body.fade-out {
             opacity: 0;

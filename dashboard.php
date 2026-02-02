@@ -34,7 +34,7 @@ $fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
     <title>Dashboard</title>
     <style>
         a[href*="mis_tickets"] .card {
-            transition: transform 0.2s, box-shadow 0.2s;
+            
         }
         a[href*="mis_tickets"] .card:hover {
             transform: translateY(-5px);
@@ -77,7 +77,7 @@ $fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
                             </div>
                             <div class="col-md-6">
                                 <a href="tickets.php?mis_tickets" style="text-decoration: none; color: inherit;">
-                                    <div class="card card-gestion border-success" style="cursor: pointer; transition: transform 0.2s;">
+                                    <div class="card card-gestion border-success" style="cursor: pointer;">
                                         <div class="card-body text-center">
                                             <h5 class="card-title">🎫 Tickets Asignados</h5>
                                             <p class="card-text display-6"><?php echo $tickets_asignados; ?></p>

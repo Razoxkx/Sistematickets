@@ -22,7 +22,7 @@ $pagina = max(1, (int)($_GET["pagina"] ?? 1));
 $orden = $_GET["orden"] ?? "rfk";
 $direccion = $_GET["dir"] ?? "ASC";
 
-// Validar orden para evitar SQL injection
+// Validar orden
 $ordenes_validas = ['rfk', 'titulo', 'tipo', 'fabricante', 'ubicacion', 'propietario'];
 if (!in_array($orden, $ordenes_validas)) {
     $orden = "rfk";
@@ -38,57 +38,37 @@ $offset = ($pagina - 1) * $activos_por_pagina;
 $total_activos = 0;
 $total_paginas = 1;
 
-// Mapeo de órdenes a columnas SQL
-$orden_map = [
-    'rfk' => 'a.rfk',
-    'titulo' => 'a.titulo',
-    'tipo' => 'a.tipo',
-    'fabricante' => 'a.fabricante',
-    'ubicacion' => 'a.ubicacion',
-    'propietario' => 'a.propietario'
-];
-$columna_orden = $orden_map[$orden];
-
 try {
-    // Contar total de activos
-    $where = "1=1";
     $params = [];
+    $where = "1=1";
     
+    // Si hay búsqueda, buscar en TODOS los campos con LIKE
     if (!empty($busqueda)) {
-        // Detectar si es una búsqueda directa de activo (AK79XXXX)
-        $es_numero_activo = preg_match('/^AK\d{5,7}$/i', $busqueda);
-        
-        if ($es_numero_activo) {
-            // Búsqueda directa por número de activo (RFK)
-            $where .= " AND a.rfk LIKE ?";
-            $busqueda_param = '%' . strtoupper($busqueda) . '%';
-            $params[] = $busqueda_param;
-        } else {
-            // Búsqueda normal en múltiples campos
-            $where .= " AND (a.rfk LIKE ? OR a.titulo LIKE ? OR a.descripcion LIKE ? OR a.propietario LIKE ? OR a.ubicacion LIKE ? OR a.tipo LIKE ? OR a.fabricante LIKE ?)";
-            $busqueda_param = '%' . $busqueda . '%';
-            $params[] = $busqueda_param;
-            $params[] = $busqueda_param;
-            $params[] = $busqueda_param;
-            $params[] = $busqueda_param;
-            $params[] = $busqueda_param;
-            $params[] = $busqueda_param;
-            $params[] = $busqueda_param;
-        }
+        $busqueda_term = '%' . $busqueda . '%';
+        // Construir búsqueda en todos los campos
+        $where = "(LOWER(rfk) LIKE LOWER(?) OR LOWER(titulo) LIKE LOWER(?) OR LOWER(descripcion) LIKE LOWER(?) OR LOWER(propietario) LIKE LOWER(?) OR LOWER(ubicacion) LIKE LOWER(?) OR LOWER(tipo) LIKE LOWER(?) OR LOWER(fabricante) LIKE LOWER(?) OR LOWER(modelo) LIKE LOWER(?) OR LOWER(serie) LIKE LOWER(?))";
+        $params = array_fill(0, 9, $busqueda_term);
     }
     
-    $stmt_count = $conexion->prepare("SELECT COUNT(*) as total FROM activos WHERE " . $where);
+    // Contar total
+    $sql_count = "SELECT COUNT(*) as total FROM activos WHERE " . $where;
+    $stmt_count = $conexion->prepare($sql_count);
     $stmt_count->execute($params);
     $total_activos = $stmt_count->fetch(PDO::FETCH_ASSOC)['total'];
     
     // Obtener activos
-    $stmt = $conexion->prepare("
-        SELECT a.*
-        FROM activos a
-        WHERE " . $where . "
-        ORDER BY " . $columna_orden . " " . $direccion . "
-        LIMIT " . intval($activos_por_pagina) . " OFFSET " . intval($offset) . "
-    ");
+    $orden_map = [
+        'rfk' => 'rfk',
+        'titulo' => 'titulo',
+        'tipo' => 'tipo',
+        'fabricante' => 'fabricante',
+        'ubicacion' => 'ubicacion',
+        'propietario' => 'propietario'
+    ];
+    $columna_orden = $orden_map[$orden];
+    
+    $sql = "SELECT * FROM activos WHERE " . $where . " ORDER BY " . $columna_orden . " " . $direccion . " LIMIT " . intval($activos_por_pagina) . " OFFSET " . intval($offset);
+    $stmt = $conexion->prepare($sql);
     $stmt->execute($params);
     $activos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $total_paginas = ceil($total_activos / $activos_por_pagina);
@@ -104,10 +84,137 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Activos - Sistema de Gestión</title>
     <style>
-        .table-hover tbody tr:hover { background-color: rgba(13, 110, 253, 0.075); }
+        body {
+            background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+        }
+        
+        [data-bs-theme="dark"] body {
+            background: linear-gradient(to bottom, #1a1a1a, #0d0d0d);
+        }
+        
+        .table-hover tbody tr:hover { 
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+        
+        [data-bs-theme="dark"] .table-hover tbody tr:hover {
+            background-color: rgba(139, 157, 255, 0.1);
+        }
+        
+        .card {
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        [data-bs-theme="dark"] .card {
+            border-color: #444;
+            background: #1e1e1e;
+        }
+        
+        .container-fluid {
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+        
+        [data-bs-theme="dark"] h2 {
+            color: #8b9dff;
+        }
+        
+        .table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        [data-bs-theme="dark"] .table {
+            background: #1e1e1e;
+            color: #e0e0e0;
+        }
+        
+        .table thead th {
+            background: #f8f9fa;
+            color: #667eea;
+            font-weight: 600;
+            border-color: #e0e0e0;
+        }
+        
+        [data-bs-theme="dark"] .table thead th {
+            background: #262626;
+            color: #8b9dff;
+            border-color: #444;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            border-color: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            border-color: #218838;
+        }
+        
+        [data-bs-theme="dark"] .btn-success {
+            background: #28a745;
+            border-color: #28a745;
+        }
+        
+        .form-control {
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+        
+        [data-bs-theme="dark"] .form-control {
+            background: #2a2a2a;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        
+        [data-bs-theme="dark"] .form-control:focus {
+            background: #2a2a2a;
+            border-color: #667eea;
+            color: #e0e0e0;
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-outline-primary {
+            color: #667eea;
+            border-color: #667eea;
+        }
+        
+        .btn-outline-primary:hover {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        
+        [data-bs-theme="dark"] .btn-outline-primary {
+            color: #8b9dff;
+            border-color: #8b9dff;
+        }
+        
+        [data-bs-theme="dark"] .btn-outline-primary:hover {
+            background: #8b9dff;
+            border-color: #8b9dff;
+            color: #1e1e1e;
+        }
+        
+        .btn-group .btn {
+            border-radius: 6px;
+            margin-right: 10px;
+        }
+        
+        .badge {
+            font-size: 0.85rem;
+        }
     </style>
     <script>
         (function() {
@@ -123,10 +230,10 @@ try {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid mt-4">
-        <div class="row mb-4">
+    <div class="container-fluid">
+        <div class="row mb-5">
             <div class="col-md-12">
-                <h2>Gestión de Activos</h2>
+                <h2><i class="bi bi-boxes"></i> Gestión de Activos</h2>
             </div>
         </div>
         
@@ -134,23 +241,17 @@ try {
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="row g-2">
-                    <div class="col-md-8">
-                        <input type="text" id="searchActivos" class="form-control" placeholder="Buscar por RFK, título, tipo, fabricante, ubicación o propietario..." value="<?php echo htmlspecialchars($busqueda); ?>">
+                    <div class="col-md-9">
+                        <input type="text" id="searchActivos" class="form-control" placeholder="Buscar por RFK (ej: AK7902031), título, tipo, fabricante, ubicación o propietario..." value="<?php echo htmlspecialchars($busqueda); ?>">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <?php if (!empty($busqueda)): ?>
-                            <a href="activos.php" class="btn btn-secondary w-100">Limpiar</a>
+                            <a href="activos.php" class="btn btn-secondary w-100"><i class="bi bi-x-circle"></i> Limpiar</a>
+                        <?php else: ?>
+                            <a href="crear_activo.php" class="btn btn-success w-100"><i class="bi bi-plus-circle"></i> Crear Activo</a>
                         <?php endif; ?>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Botones de acción -->
-        <div class="mb-4">
-            <div class="btn-group" role="group" aria-label="Acciones">
-                <a href="activos.php" class="btn btn-outline-primary active">Ver Todos</a>
-                <a href="crear_activo.php" class="btn btn-success">+ Crear Nuevo Activo</a>
             </div>
         </div>
         
@@ -161,30 +262,30 @@ try {
             </div>
         <?php else: ?>
             <!-- Vista Lista (tabla) -->
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div class="table-responsive" style="border-radius: 8px; overflow: hidden;">
+                <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            <th><a href="?orden=rfk&dir=<?php echo $orden === 'rfk' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;">RFK <?php echo $orden === 'rfk' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
-                            <th><a href="?orden=titulo&dir=<?php echo $orden === 'titulo' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;">Título <?php echo $orden === 'titulo' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
-                            <th><a href="?orden=tipo&dir=<?php echo $orden === 'tipo' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;">Tipo <?php echo $orden === 'tipo' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
-                            <th><a href="?orden=fabricante&dir=<?php echo $orden === 'fabricante' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;">Fabricante <?php echo $orden === 'fabricante' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
-                            <th><a href="?orden=ubicacion&dir=<?php echo $orden === 'ubicacion' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;">Ubicación <?php echo $orden === 'ubicacion' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
-                            <th><a href="?orden=propietario&dir=<?php echo $orden === 'propietario' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;">Propietario <?php echo $orden === 'propietario' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
-                            <th>Acciones</th>
+                            <th style="width: 120px;"><a href="?orden=rfk&dir=<?php echo $orden === 'rfk' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-box"></i> RFK <?php echo $orden === 'rfk' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
+                            <th><a href="?orden=titulo&dir=<?php echo $orden === 'titulo' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-file-text"></i> Título <?php echo $orden === 'titulo' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
+                            <th style="width: 120px;"><a href="?orden=tipo&dir=<?php echo $orden === 'tipo' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-tag"></i> Tipo <?php echo $orden === 'tipo' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
+                            <th style="width: 140px;"><a href="?orden=fabricante&dir=<?php echo $orden === 'fabricante' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-industry"></i> Fabricante <?php echo $orden === 'fabricante' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
+                            <th style="width: 140px;"><a href="?orden=ubicacion&dir=<?php echo $orden === 'ubicacion' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-geo-alt"></i> Ubicación <?php echo $orden === 'ubicacion' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
+                            <th style="width: 120px;"><a href="?orden=propietario&dir=<?php echo $orden === 'propietario' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-person"></i> Propietario <?php echo $orden === 'propietario' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
+                            <th style="width: 100px; text-align: center;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($activos as $activo): ?>
-                            <tr style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalVerActivo" onclick="cargarActivo(<?php echo htmlspecialchars(json_encode($activo)); ?>)">
-                                <td><strong><?php echo htmlspecialchars($activo["rfk"]); ?></strong></td>
-                                <td><?php echo htmlspecialchars($activo["titulo"]); ?></td>
-                                <td><?php echo htmlspecialchars($activo["tipo"]); ?></td>
+                            <tr style="cursor: pointer;" onclick="window.location='ver_activo.php?id=<?php echo htmlspecialchars($activo['id']); ?>'">
+                                <td><strong style="color: #667eea;"><?php echo htmlspecialchars($activo["rfk"]); ?></strong></td>
+                                <td><?php echo htmlspecialchars(substr($activo["titulo"], 0, 50)); ?></td>
+                                <td><span class="badge bg-info"><?php echo htmlspecialchars($activo["tipo"]); ?></span></td>
                                 <td><?php echo htmlspecialchars($activo["fabricante"]); ?></td>
                                 <td><?php echo htmlspecialchars($activo["ubicacion"]); ?></td>
                                 <td><?php echo htmlspecialchars($activo["propietario"]); ?></td>
-                                <td>
-                                    <a href="editar_activo.php?id=<?php echo htmlspecialchars($activo["id"]); ?>" class="btn btn-sm btn-warning" onclick="event.stopPropagation();">Editar</a>
+                                <td style="text-align: center;">
+                                    <a href="editar_activo.php?id=<?php echo htmlspecialchars($activo["id"]); ?>" class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation();"><i class="bi bi-pencil"></i></a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
