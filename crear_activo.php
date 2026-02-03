@@ -119,7 +119,59 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="tipo" class="form-label">Tipo *</label>
-                                    <input type="text" class="form-control" id="tipo" name="tipo" required value="<?php echo htmlspecialchars($_POST["tipo"] ?? ""); ?>">
+                                    <select name="tipo" id="tipo" class="form-select" required>
+                                        <option value="" disabled <?php echo empty($_POST["tipo"]) ? "selected" : ""; ?>>Seleccione un tipo</option>
+                                        <option value="GENERICO" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "GENERICO") ? "selected" : ""; ?>>GENERICO</option>
+                                        <option value="ACCESS-POINT" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "ACCESS-POINT") ? "selected" : ""; ?>>ACCESS-POINT</option>
+                                        <option value="ADAPTADOR VIDEO" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "ADAPTADOR VIDEO") ? "selected" : ""; ?>>ADAPTADOR VIDEO</option>
+                                        <option value="BATERIA" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "BATERIA") ? "selected" : ""; ?>>BATERIA</option>
+                                        <option value="CABLE HDMI" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "CABLE HDMI") ? "selected" : ""; ?>>CABLE HDMI</option>
+                                        <option value="CABLE SEGURIDAD NOTEBOOK" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "CABLE SEGURIDAD NOTEBOOK") ? "selected" : ""; ?>>CABLE SEGURIDAD NOTEBOOK</option>
+                                        <option value="CAMARA" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "CAMARA") ? "selected" : ""; ?>>CAMARA</option>
+                                        <option value="CAMARA VIGILANCIA" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "CAMARA VIGILANCIA") ? "selected" : ""; ?>>CAMARA VIGILANCIA</option>
+                                        <option value="CARGADOR" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "CARGADOR") ? "selected" : ""; ?>>CARGADOR</option>
+                                        <option value="CENTRAL TELEFONICA" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "CENTRAL TELEFONICA") ? "selected" : ""; ?>>CENTRAL TELEFONICA</option>
+                                        <option value="COMPONENTE INTERNO" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "COMPONENTE INTERNO") ? "selected" : ""; ?>>COMPONENTE INTERNO</option>
+                                        <option value="DESKTOP" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "DESKTOP") ? "selected" : ""; ?>>DESKTOP</option>
+                                        <option value="DISK HDD" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "DISK HDD") ? "selected" : ""; ?>>DISK HDD</option>
+                                        <option value="DISK SSD" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "DISK SSD") ? "selected" : ""; ?>>DISK SSD</option>
+                                        <option value="DOCK" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "DOCK") ? "selected" : ""; ?>>DOCK</option>
+                                        <option value="ESCANER" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "ESCANER") ? "selected" : ""; ?>>ESCANER</option>
+                                        <option value="ETIQUETADORA" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "ETIQUETADORA") ? "selected" : ""; ?>>ETIQUETADORA</option>
+                                        <option value="FUENTE DE PODER" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "FUENTE DE PODER") ? "selected" : ""; ?>>FUENTE DE PODER</option>
+                                        <option value="HEADSET" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "HEADSET") ? "selected" : ""; ?>>HEADSET</option>
+                                        <option value="KVM" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "KVM") ? "selected" : ""; ?>>KVM</option>
+                                        <option value="MEDIACONVERT" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "MEDIACONVERT") ? "selected" : ""; ?>>MEDIACONVERT</option>
+                                        <option value="MODEM" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "MODEM") ? "selected" : ""; ?>>MODEM</option>
+                                        <option value="MONITOR" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "MONITOR") ? "selected" : ""; ?>>MONITOR</option>
+                                        <option value="MOUSE" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "MOUSE") ? "selected" : ""; ?>>MOUSE</option>
+                                        <option value="MUEBLE" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "MUEBLE") ? "selected" : ""; ?>>MUEBLE</option>
+                                        <option value="NAS" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "NAS") ? "selected" : ""; ?>>NAS</option>
+                                        <option value="NOTEBOOK" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "NOTEBOOK") ? "selected" : ""; ?>>NOTEBOOK</option>
+                                        <option value="NVR" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "NVR") ? "selected" : ""; ?>>NVR</option>
+                                        <option value="PARLANTES" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "PARLANTES") ? "selected" : ""; ?>>PARLANTES</option>
+                                        <option value="PATCH PANEL" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "PATCH PANEL") ? "selected" : ""; ?>>PATCH PANEL</option>
+                                        <option value="PDU" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "PDU") ? "selected" : ""; ?>>PDU</option>
+                                        <option value="PRINTER" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "PRINTER") ? "selected" : ""; ?>>PRINTER</option>
+                                        <option value="PROYECTOR" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "PROYECTOR") ? "selected" : ""; ?>>PROYECTOR</option>
+                                        <option value="PUNTO DE RED" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "PUNTO DE RED") ? "selected" : ""; ?>>PUNTO DE RED</option>
+                                        <option value="RACK" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "RACK") ? "selected" : ""; ?>>RACK</option>
+                                        <option value="RELOJ-CONTROL" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "RELOJ-CONTROL") ? "selected" : ""; ?>>RELOJ-CONTROL</option>
+                                        <option value="ROTULADORA" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "ROTULADORA") ? "selected" : ""; ?>>ROTULADORA</option>
+                                        <option value="ROUTER" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "ROUTER") ? "selected" : ""; ?>>ROUTER</option>
+                                        <option value="SERVIDOR" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "SERVIDOR") ? "selected" : ""; ?>>SERVIDOR</option>
+                                        <option value="SIM CARD" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "SIM CARD") ? "selected" : ""; ?>>SIM CARD</option>
+                                        <option value="SMART-LOCK" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "SMART-LOCK") ? "selected" : ""; ?>>SMART-LOCK</option>
+                                        <option value="SWITCH" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "SWITCH") ? "selected" : ""; ?>>SWITCH</option>
+                                        <option value="TABLET" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "TABLET") ? "selected" : ""; ?>>TABLET</option>
+                                        <option value="TARJETA DE IDENTIFICACION" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "TARJETA DE IDENTIFICACION") ? "selected" : ""; ?>>TARJETA DE IDENTIFICACION</option>
+                                        <option value="TECLADO" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "TECLADO") ? "selected" : ""; ?>>TECLADO</option>
+                                        <option value="TELEFONO" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "TELEFONO") ? "selected" : ""; ?>>TELEFONO</option>
+                                        <option value="TELEFONO-IP" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "TELEFONO-IP") ? "selected" : ""; ?>>TELEFONO-IP</option>
+                                        <option value="TV" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "TV") ? "selected" : ""; ?>>TV</option>
+                                        <option value="UPS" <?php echo (isset($_POST["tipo"]) && $_POST["tipo"] === "UPS") ? "selected" : ""; ?>>UPS</option>
+                                    </select>
+                                    
                                 </div>
                             </div>
                             
