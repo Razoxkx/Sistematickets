@@ -806,7 +806,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             padding-bottom: 15px;
             padding-right: 20px;
             margin-bottom: 20px;
-            max-width: 1300px;
+            max-width: 1100px;
             margin-left: auto;
             margin-right: auto;
         }
