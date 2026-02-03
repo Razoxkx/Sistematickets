@@ -49,12 +49,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Generar nuevo RFK con formato AK + número
             $nuevo_rfk = "AK" . str_pad($nuevo_numero, 7, "0", STR_PAD_LEFT);
             
-            // Insertar nuevo activo
+            // Insertar nuevo activo con información de auditoría
+            $usuario_creador = $_SESSION["username"] ?? "Sistema";
             $stmt = $conexion->prepare("
-                INSERT INTO activos (rfk, titulo, descripcion, propietario, tipo, fabricante, modelo, serie, ubicacion, fallas_activas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO activos (rfk, titulo, usuario_creado_por, fecha_creacion, descripcion, propietario, tipo, fabricante, modelo, serie, ubicacion, fallas_activas)
+                VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$nuevo_rfk, $titulo, $descripcion, $propietario, $tipo, $fabricante, $modelo, $serie, $ubicacion, $fallas_activas]);
+            $stmt->execute([$nuevo_rfk, $titulo, $usuario_creador, $descripcion, $propietario, $tipo, $fabricante, $modelo, $serie, $ubicacion, $fallas_activas]);
             
             $success = "Activo creado exitosamente con RFK: <strong>$nuevo_rfk</strong>";
             

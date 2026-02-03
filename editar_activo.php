@@ -56,12 +56,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error = "El título, propietario y tipo son obligatorios";
     } else {
         try {
+            $usuario_modificador = $_SESSION["username"] ?? "Sistema";
             $stmt = $conexion->prepare("
                 UPDATE activos 
-                SET titulo = ?, descripcion = ?, propietario = ?, tipo = ?, fabricante = ?, modelo = ?, serie = ?, ubicacion = ?, fallas_activas = ?
+                SET titulo = ?, descripcion = ?, propietario = ?, tipo = ?, fabricante = ?, modelo = ?, serie = ?, ubicacion = ?, fallas_activas = ?, usuario_modificado_por = ?, fecha_ultima_modificacion = NOW()
                 WHERE id = ?
             ");
-            $stmt->execute([$titulo, $descripcion, $propietario, $tipo, $fabricante, $modelo, $serie, $ubicacion, $fallas_activas, $activo_id]);
+            $stmt->execute([$titulo, $descripcion, $propietario, $tipo, $fabricante, $modelo, $serie, $ubicacion, $fallas_activas, $usuario_modificador, $activo_id]);
             
             $success = "Activo actualizado exitosamente";
             

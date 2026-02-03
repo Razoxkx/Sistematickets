@@ -185,6 +185,45 @@ try {
                 </div>
             <?php endif; ?>
             
+            <!-- Información de Auditoría -->
+            <div class="info-section">
+                <h5><i class="bi bi-clock-history"></i> Información de Auditoría</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <strong>Creado por:</strong>
+                                <p class="text-muted mb-0"><?php echo htmlspecialchars($activo["usuario_creado_por"] ?? "Sistema"); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <strong>Fecha Creación:</strong>
+                                <p class="text-muted mb-0"><?php echo !empty($activo["fecha_creacion"]) ? formatearFechaHora($activo["fecha_creacion"]) : "-"; ?></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <strong>Modificado por:</strong>
+                                <p class="text-muted mb-0"><?php echo htmlspecialchars($activo["usuario_modificado_por"] ?? "-"); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <strong>Última Modificación:</strong>
+                                <p class="text-muted mb-0"><?php echo !empty($activo["fecha_ultima_modificacion"]) ? formatearFechaHora($activo["fecha_ultima_modificacion"]) : "-"; ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Tickets Mencionados -->
             <div class="info-section">
                 <h5><i class="bi bi-chat-left-dots"></i> Mencionado En Tickets</h5>
