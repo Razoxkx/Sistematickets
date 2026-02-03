@@ -456,8 +456,10 @@ try {
                         const url = new URL(window.location);
                         if (query) {
                             url.searchParams.set('buscar', query);
+                            url.searchParams.set('pagina', '1'); // Resetear a página 1 al buscar
                         } else {
                             url.searchParams.delete('buscar');
+                            url.searchParams.set('pagina', '1'); // Resetear a página 1 al limpiar
                         }
                         window.location.search = url.search;
                     }, 1000);
