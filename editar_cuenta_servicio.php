@@ -53,12 +53,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
     } else {
         try {
             // Obtener la contraseña hasheada del usuario actual
-            $stmt_user = $conexion->prepare("SELECT contrasena FROM users WHERE id = ?");
+            $stmt_user = $conexion->prepare("SELECT password FROM users WHERE id = ?");
             $stmt_user->execute([$_SESSION["user_id"]]);
             $usuario = $stmt_user->fetch(PDO::FETCH_ASSOC);
             
             // Verificar la contraseña ingresada
-            if (!$usuario || !password_verify($contraseña_admin, $usuario["contrasena"])) {
+            if (!$usuario || !password_verify($contraseña_admin, $usuario["password"])) {
                 $error = "Contraseña incorrecta. No puedes realizar cambios sin validar tu identidad.";
             } else {
                 $stmt = $conexion->prepare("

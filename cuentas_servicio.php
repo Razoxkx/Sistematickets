@@ -404,9 +404,9 @@ try {
 
                                 <!-- Botones de acción -->
                                 <div class="d-grid gap-2">
-                                    <a href="editar_cuenta_servicio.php?id=<?php echo $cuenta["id"]; ?>" class="btn btn-sm btn-warning">
+                                    <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalAutenticacion" onclick="document.getElementById('cuentaIdAutenticacion').value = <?php echo $cuenta['id']; ?>; document.getElementById('passwordAutenticacion').value = '';">
                                         <i class="bi bi-pencil"></i> Editar
-                                    </a>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="confirmarEliminar(<?php echo $cuenta["id"]; ?>)">
                                         <i class="bi bi-trash"></i> Eliminar
                                     </button>
@@ -592,6 +592,83 @@ try {
                 localStorage.setItem('darkMode', 'enabled');
             }
         }
+
+        // Función para autenticar y editar cuenta
+        function autenticarYEditar() {
+            const cuentaId = document.getElementById('cuentaIdAutenticacion').value;
+            const password = document.getElementById('passwordAutenticacion').value;
+            
+            if (!password.trim()) {
+                alert('Por favor ingresa tu contraseña');
+                return;
+            }
+            
+            fetch('api_verificar_contraseña.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Contraseña correcta, redirigir a editar
+                    window.location.href = 'editar_cuenta_servicio.php?id=' + cuentaId;
+                    // Cerrar modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalAutenticacion')).hide();
+                } else {
+                    alert('Contraseña incorrecta');
+                    document.getElementById('passwordAutenticacion').value = '';
+                    document.getElementById('passwordAutenticacion').focus();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al verificar la contraseña');
+            });
+        }
+
+        // Permitir Enter para confirmar contraseña cuando el modal está abierto
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('passwordAutenticacion');
+            if (passwordInput) {
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        autenticarYEditar();
+                    }
+                });
+            }
+        });
     </script>
+
+    <!-- Modal de Autenticación -->
+    <div class="modal fade" id="modalAutenticacion" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="bi bi-shield-lock"></i> Confirmar Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Por seguridad, debes confirmar tu contraseña de administrador para editar esta cuenta.</p>
+                    <input type="hidden" id="cuentaIdAutenticacion">
+                    <div class="mb-3">
+                        <label for="passwordAutenticacion" class="form-label">Tu Contraseña</label>
+                        <input type="password" class="form-control" id="passwordAutenticacion" placeholder="Ingresa tu contraseña" autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" onclick="autenticarYEditar()">
+                        <i class="bi bi-check-circle"></i> Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
