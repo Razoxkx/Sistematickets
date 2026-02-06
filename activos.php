@@ -284,7 +284,7 @@ try {
                             <tr style="cursor: pointer;" onclick="window.location='ver_activo.php?id=<?php echo htmlspecialchars($activo['id']); ?>'">
                                 <td><strong style="color: #667eea;"><?php echo htmlspecialchars($activo["rfk"]); ?></strong></td>
                                 <td><?php echo htmlspecialchars(substr($activo["titulo"], 0, 50)); ?></td>
-                                <td><span class="badge bg-info"><?php echo htmlspecialchars($activo["tipo"]); ?></span></td>
+                                <td><span class="badge" style="background-color: #667eea; color: white;"><?php echo htmlspecialchars($activo["tipo"]); ?></span></td>
                                 <td><?php echo htmlspecialchars($activo["fabricante"]); ?></td>
                                 <td><?php echo htmlspecialchars($activo["ubicacion"]); ?></td>
                                 <td><?php echo htmlspecialchars($activo["propietario"]); ?></td>
@@ -454,10 +454,6 @@ try {
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('searchActivos');
             if (searchInput) {
-                // Restaurar el focus después de que la página cargue completamente
-                searchInput.focus();
-                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-                
                 searchInput.addEventListener('input', function(e) {
                     clearTimeout(searchTimeout);
                     const query = e.target.value.trim();
@@ -465,10 +461,10 @@ try {
                         const url = new URL(window.location);
                         if (query) {
                             url.searchParams.set('buscar', query);
-                            url.searchParams.set('pagina', '1');
+                            url.searchParams.set('pagina', '1'); // Resetear a página 1 al buscar
                         } else {
                             url.searchParams.delete('buscar');
-                            url.searchParams.set('pagina', '1');
+                            url.searchParams.set('pagina', '1'); // Resetear a página 1 al limpiar
                         }
                         window.location.search = url.search;
                     }, 1000);
