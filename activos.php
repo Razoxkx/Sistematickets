@@ -273,9 +273,9 @@ try {
                             <th style="width: 140px;"><a href="?orden=ubicacion&dir=<?php echo $orden === 'ubicacion' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-geo-alt"></i> Ubicación <?php echo $orden === 'ubicacion' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
                             <th style="width: 120px;"><a href="?orden=propietario&dir=<?php echo $orden === 'propietario' && $direccion === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>&pagina=1" style="text-decoration: none; color: inherit;"><i class="bi bi-person"></i> Propietario <?php echo $orden === 'propietario' ? ($direccion === 'ASC' ? '▲' : '▼') : ''; ?></a></th>
                             <th style="width: 140px;"><i class="bi bi-person-plus"></i> Creado por</th>
-                            <th style="width: 150px;"><i class="bi bi-calendar-event"></i> Fecha Creación</th>
+                            <!-- <th style="width: 150px;"><i class="bi bi-calendar-event"></i> Fecha Creación</th>
                             <th style="width: 140px;"><i class="bi bi-person-check"></i> Modificado por</th>
-                            <th style="width: 150px;"><i class="bi bi-calendar-check"></i> Última Modificación</th>
+                            <th style="width: 150px;"><i class="bi bi-calendar-check"></i> Última Modificación</th> -->
                             <th style="width: 100px; text-align: center;">Acciones</th>
                         </tr>
                     </thead>
@@ -289,9 +289,6 @@ try {
                                 <td><?php echo htmlspecialchars($activo["ubicacion"]); ?></td>
                                 <td><?php echo htmlspecialchars($activo["propietario"]); ?></td>
                                 <td><?php echo htmlspecialchars($activo["usuario_creado_por"] ?? "-"); ?></td>
-                                <td><?php echo !empty($activo["fecha_creacion"]) ? formatearFechaHora($activo["fecha_creacion"]) : "-"; ?></td>
-                                <td><?php echo htmlspecialchars($activo["usuario_modificado_por"] ?? "-"); ?></td>
-                                <td><?php echo !empty($activo["fecha_ultima_modificacion"]) ? formatearFechaHora($activo["fecha_ultima_modificacion"]) : "-"; ?></td>
                                 <td style="text-align: center;">
                                     <a href="editar_activo.php?id=<?php echo htmlspecialchars($activo["id"]); ?>" class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation();"><i class="bi bi-pencil"></i></a>
                                 </td>
