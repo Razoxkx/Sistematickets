@@ -235,7 +235,8 @@ function getEstadoColor($estado) {
     <div class="container mt-5">
         <div class="row mb-4">
             <div class="col-md-12">
-                <h2>Tickets</h2>
+                <h2>Tickets</h2><br>
+                <a href="crear_ticket.php" class="btn btn-danger" style="padding: 12px 24px; font-size: 18px;">+ Crear Nuevo Ticket</a>
             </div>
         </div>
         
@@ -270,7 +271,7 @@ function getEstadoColor($estado) {
             <a href="tickets.php?estado=en%20proceso<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'en proceso' ? 'btn-warning' : 'btn-outline-warning'; ?>">En proceso (<?php echo $conteos_estado['en proceso']; ?>)</a>
             <a href="tickets.php?estado=pendiente%20de%20cierre<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'pendiente de cierre' ? 'btn-danger' : 'btn-outline-danger'; ?>">Pendiente de cierre (<?php echo $conteos_estado['pendiente de cierre']; ?>)</a>
             <a href="tickets_cerrados.php" class="btn btn-outline-success">Tickets Cerrados (<?php echo $conteo_cerrados; ?>)</a>
-            <a href="crear_ticket.php" class="btn btn-success">+ Crear Nuevo Ticket</a>
+            
         </div>
         
         <!-- Listado de Tickets -->

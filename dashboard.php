@@ -137,12 +137,7 @@ $fecha_formateada = $fecha_actual->format('d \d\e F \d\e Y');
                         </div>
                         
                         <hr>
-                        
-                        <?php if (in_array($role, ['tisupport', 'admin'])): ?>
-                            <a href="register.php" class="btn btn-success">Agregar Nuevo Usuario</a>
-                        <?php endif; ?>
-                        
-                        <?php if ($role === 'admin'): ?>
+                        <?php if ($role === 'admin' or $role === 'tisupport'): ?>
                             <a href="usuarios.php" class="btn btn-primary">Gestionar Usuarios</a>
                         <?php endif; ?>
                     </div>

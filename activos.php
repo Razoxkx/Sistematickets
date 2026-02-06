@@ -454,6 +454,10 @@ try {
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('searchActivos');
             if (searchInput) {
+                // Restaurar el focus después de que la página cargue completamente
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+                
                 searchInput.addEventListener('input', function(e) {
                     clearTimeout(searchTimeout);
                     const query = e.target.value.trim();
@@ -461,10 +465,10 @@ try {
                         const url = new URL(window.location);
                         if (query) {
                             url.searchParams.set('buscar', query);
-                            url.searchParams.set('pagina', '1'); // Resetear a página 1 al buscar
+                            url.searchParams.set('pagina', '1');
                         } else {
                             url.searchParams.delete('buscar');
-                            url.searchParams.set('pagina', '1'); // Resetear a página 1 al limpiar
+                            url.searchParams.set('pagina', '1');
                         }
                         window.location.search = url.search;
                     }, 1000);
