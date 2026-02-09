@@ -63,13 +63,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 WHERE id = ?
             ");
             $stmt->execute([$titulo, $descripcion, $propietario, $tipo, $fabricante, $modelo, $serie, $ubicacion, $fallas_activas, $usuario_modificador, $activo_id]);
-            
-            $success = "Activo actualizado exitosamente";
-            
-            // Recargar datos
-            $stmt = $conexion->prepare("SELECT * FROM activos WHERE id = ?");
-            $stmt->execute([$activo_id]);
-            $activo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Redirigir a la lista de activos (orden RFK descendente, página 1) y marcar éxito
+            header("Location: activos.php?orden=rfk&dir=DESC&pagina=1&success=editado");
+            exit();
             
         } catch (PDOException $e) {
             $error = "Error al actualizar el activo: " . $e->getMessage();

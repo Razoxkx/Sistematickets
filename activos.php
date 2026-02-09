@@ -38,6 +38,14 @@ $offset = ($pagina - 1) * $activos_por_pagina;
 $total_activos = 0;
 $total_paginas = 1;
 
+// Mostrar mensaje de éxito si viene de edición
+$mensaje_exito = "";
+$mostrar_toast_exito = false;
+if (isset($_GET['success']) && $_GET['success'] === 'editado') {
+    $mensaje_exito = "Activo editado correctamente";
+    $mostrar_toast_exito = true;
+}
+
 try {
     $params = [];
     $where = "1=1";
@@ -386,6 +394,35 @@ try {
         </div>
     </div>
     
+    <!-- Toast de éxito al editar -->
+    <?php if ($mostrar_toast_exito): ?>
+        <div aria-live="polite" aria-atomic="true" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+            <div id="toastExito" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <?php echo htmlspecialchars($mensaje_exito); ?>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                </div>
+            </div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var toastEl = document.getElementById('toastExito');
+                if (toastEl) {
+                    var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 3000 });
+                    toast.show();
+                }
+                // Remover el parámetro success de la URL para que el toast no reaparezca al recargar
+                try {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('success');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                } catch (e) { }
+            });
+        </script>
+    <?php endif; ?>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function cargarActivo(activo) {
