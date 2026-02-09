@@ -124,9 +124,62 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <label for="titulo" class="form-label">Título *</label>
                                     <input type="text" class="form-control" id="titulo" name="titulo" required value="<?php echo htmlspecialchars($activo["titulo"] ?? ""); ?>">
                                 </div>
-                                <div class="col-md-6 mb-3">
+                             <div class="col-md-6 mb-3">
                                     <label for="tipo" class="form-label">Tipo *</label>
-                                    <input type="text" class="form-control" id="tipo" name="tipo" required value="<?php echo htmlspecialchars($activo["tipo"] ?? ""); ?>">
+                                    <?php $selected_tipo = $_POST['tipo'] ?? $activo['tipo'] ?? ''; ?>
+                                    <select name="tipo" id="tipo" class="form-select" required>
+                                        <option value="" disabled <?php echo $selected_tipo === '' ? "selected" : ""; ?>>Seleccione un tipo</option>
+                                        <option value="GENERICO" <?php echo ($selected_tipo === "GENERICO") ? "selected" : ""; ?>>GENERICO</option>
+                                        <option value="ACCESS-POINT" <?php echo ($selected_tipo === "ACCESS-POINT") ? "selected" : ""; ?>>ACCESS-POINT</option>
+                                        <option value="ADAPTADOR VIDEO" <?php echo ($selected_tipo === "ADAPTADOR VIDEO") ? "selected" : ""; ?>>ADAPTADOR VIDEO</option>
+                                        <option value="BATERIA" <?php echo ($selected_tipo === "BATERIA") ? "selected" : ""; ?>>BATERIA</option>
+                                        <option value="CABLE HDMI" <?php echo ($selected_tipo === "CABLE HDMI") ? "selected" : ""; ?>>CABLE HDMI</option>
+                                        <option value="CABLE SEGURIDAD NOTEBOOK" <?php echo ($selected_tipo === "CABLE SEGURIDAD NOTEBOOK") ? "selected" : ""; ?>>CABLE SEGURIDAD NOTEBOOK</option>
+                                        <option value="CAMARA" <?php echo ($selected_tipo === "CAMARA") ? "selected" : ""; ?>>CAMARA</option>
+                                        <option value="CAMARA VIGILANCIA" <?php echo ($selected_tipo === "CAMARA VIGILANCIA") ? "selected" : ""; ?>>CAMARA VIGILANCIA</option>
+                                        <option value="CARGADOR" <?php echo ($selected_tipo === "CARGADOR") ? "selected" : ""; ?>>CARGADOR</option>
+                                        <option value="CENTRAL TELEFONICA" <?php echo ($selected_tipo === "CENTRAL TELEFONICA") ? "selected" : ""; ?>>CENTRAL TELEFONICA</option>
+                                        <option value="COMPONENTE INTERNO" <?php echo ($selected_tipo === "COMPONENTE INTERNO") ? "selected" : ""; ?>>COMPONENTE INTERNO</option>
+                                        <option value="DESKTOP" <?php echo ($selected_tipo === "DESKTOP") ? "selected" : ""; ?>>DESKTOP</option>
+                                        <option value="DISK HDD" <?php echo ($selected_tipo === "DISK HDD") ? "selected" : ""; ?>>DISK HDD</option>
+                                        <option value="DISK SSD" <?php echo ($selected_tipo === "DISK SSD") ? "selected" : ""; ?>>DISK SSD</option>
+                                        <option value="DOCK" <?php echo ($selected_tipo === "DOCK") ? "selected" : ""; ?>>DOCK</option>
+                                        <option value="ESCANER" <?php echo ($selected_tipo === "ESCANER") ? "selected" : ""; ?>>ESCANER</option>
+                                        <option value="ETIQUETADORA" <?php echo ($selected_tipo === "ETIQUETADORA") ? "selected" : ""; ?>>ETIQUETADORA</option>
+                                        <option value="FUENTE DE PODER" <?php echo ($selected_tipo === "FUENTE DE PODER") ? "selected" : ""; ?>>FUENTE DE PODER</option>
+                                        <option value="HEADSET" <?php echo ($selected_tipo === "HEADSET") ? "selected" : ""; ?>>HEADSET</option>
+                                        <option value="KVM" <?php echo ($selected_tipo === "KVM") ? "selected" : ""; ?>>KVM</option>
+                                        <option value="MEDIACONVERT" <?php echo ($selected_tipo === "MEDIACONVERT") ? "selected" : ""; ?>>MEDIACONVERT</option>
+                                        <option value="MODEM" <?php echo ($selected_tipo === "MODEM") ? "selected" : ""; ?>>MODEM</option>
+                                        <option value="MONITOR" <?php echo ($selected_tipo === "MONITOR") ? "selected" : ""; ?>>MONITOR</option>
+                                        <option value="MOUSE" <?php echo ($selected_tipo === "MOUSE") ? "selected" : ""; ?>>MOUSE</option>
+                                        <option value="MUEBLE" <?php echo ($selected_tipo === "MUEBLE") ? "selected" : ""; ?>>MUEBLE</option>
+                                        <option value="NAS" <?php echo ($selected_tipo === "NAS") ? "selected" : ""; ?>>NAS</option>
+                                        <option value="NOTEBOOK" <?php echo ($selected_tipo === "NOTEBOOK") ? "selected" : ""; ?>>NOTEBOOK</option>
+                                        <option value="NVR" <?php echo ($selected_tipo === "NVR") ? "selected" : ""; ?>>NVR</option>
+                                        <option value="PARLANTES" <?php echo ($selected_tipo === "PARLANTES") ? "selected" : ""; ?>>PARLANTES</option>
+                                        <option value="PATCH PANEL" <?php echo ($selected_tipo === "PATCH PANEL") ? "selected" : ""; ?>>PATCH PANEL</option>
+                                        <option value="PDU" <?php echo ($selected_tipo === "PDU") ? "selected" : ""; ?>>PDU</option>
+                                        <option value="PRINTER" <?php echo ($selected_tipo === "PRINTER") ? "selected" : ""; ?>>PRINTER</option>
+                                        <option value="PROYECTOR" <?php echo ($selected_tipo === "PROYECTOR") ? "selected" : ""; ?>>PROYECTOR</option>
+                                        <option value="PUNTO DE RED" <?php echo ($selected_tipo === "PUNTO DE RED") ? "selected" : ""; ?>>PUNTO DE RED</option>
+                                        <option value="RACK" <?php echo ($selected_tipo === "RACK") ? "selected" : ""; ?>>RACK</option>
+                                        <option value="RELOJ-CONTROL" <?php echo ($selected_tipo === "RELOJ-CONTROL") ? "selected" : ""; ?>>RELOJ-CONTROL</option>
+                                        <option value="ROTULADORA" <?php echo ($selected_tipo === "ROTULADORA") ? "selected" : ""; ?>>ROTULADORA</option>
+                                        <option value="ROUTER" <?php echo ($selected_tipo === "ROUTER") ? "selected" : ""; ?>>ROUTER</option>
+                                        <option value="SERVIDOR" <?php echo ($selected_tipo === "SERVIDOR") ? "selected" : ""; ?>>SERVIDOR</option>
+                                        <option value="SIM CARD" <?php echo ($selected_tipo === "SIM CARD") ? "selected" : ""; ?>>SIM CARD</option>
+                                        <option value="SMART-LOCK" <?php echo ($selected_tipo === "SMART-LOCK") ? "selected" : ""; ?>>SMART-LOCK</option>
+                                        <option value="SWITCH" <?php echo ($selected_tipo === "SWITCH") ? "selected" : ""; ?>>SWITCH</option>
+                                        <option value="TABLET" <?php echo ($selected_tipo === "TABLET") ? "selected" : ""; ?>>TABLET</option>
+                                        <option value="TARJETA DE IDENTIFICACION" <?php echo ($selected_tipo === "TARJETA DE IDENTIFICACION") ? "selected" : ""; ?>>TARJETA DE IDENTIFICACION</option>
+                                        <option value="TECLADO" <?php echo ($selected_tipo === "TECLADO") ? "selected" : ""; ?>>TECLADO</option>
+                                        <option value="TELEFONO" <?php echo ($selected_tipo === "TELEFONO") ? "selected" : ""; ?>>TELEFONO</option>
+                                        <option value="TELEFONO-IP" <?php echo ($selected_tipo === "TELEFONO-IP") ? "selected" : ""; ?>>TELEFONO-IP</option>
+                                        <option value="TV" <?php echo ($selected_tipo === "TV") ? "selected" : ""; ?>>TV</option>
+                                        <option value="UPS" <?php echo ($selected_tipo === "UPS") ? "selected" : ""; ?>>UPS</option>
+                                    </select>
+                                    
                                 </div>
                             </div>
                             
