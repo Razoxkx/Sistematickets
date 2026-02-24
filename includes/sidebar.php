@@ -330,13 +330,6 @@ require_once 'config.php';
     </div>
 
     <ul class="sidebar-nav">
-        <li class="sidebar-nav-item">
-            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'dashboard.php') ? 'active' : ''; ?>" href="dashboard.php" title="Dashboard">
-                <span class="sidebar-nav-icon"><i class="bi bi-house"></i></span>
-                <span class="sidebar-nav-text">Dashboard</span>
-            </a>
-        </li>
-
         <?php 
         $permisos = ['tisupport', 'admin'];
         if (in_array($_SESSION["role"] ?? "viewer", $permisos)): 

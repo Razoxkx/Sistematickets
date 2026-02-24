@@ -1,7 +1,7 @@
 # AI Coding Assistant Instructions for Ticket Management System
 
 ## Project Overview
-This is a **Spanish-language IT ticket management system** built with PHP + MySQL, deployed on MAMP at `localhost:8889/test`. It handles ticket lifecycle (creation, assignment, status tracking, closure) with role-based access control. Not a production system—intentional security patterns for learning/demo.
+This is a **Spanish-language IT ticket management system** built with PHP + MySQL, deployed on MAMP at `localhost:8889/jupiter`. It handles ticket lifecycle (creation, assignment, status tracking, closure) with role-based access control. Not a production system—intentional security patterns for learning/demo.
 
 ## Architecture & Key Components
 
@@ -81,7 +81,7 @@ if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
 - **Color coding**: Badge colors based on role: `admin` → danger (red), `tisupport` → warning (yellow), `viewer` → info (blue)
 
 ## Setup & Prerequisites
-- MAMP running locally; DB: `test`, User: `root`, Password: `r652Is-scVT1HX3@`, Port: `8889`
+- MAMP running locally; DB: `jupiter`, User: `root`, Password: `r652Is-scVT1HX3@`, Port: `8889`
 - MySQL tables created by [insert_tickets.sql](insert_tickets.sql) (includes sample data)
 - No build step; plain PHP served directly by MAMP
 

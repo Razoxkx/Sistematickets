@@ -188,9 +188,19 @@ try {
             </div>
         <?php else: ?>
             <?php if (!empty($success)): ?>
-                <div class="alert alert-success alert-dismissible fade show">
-                    <i class="bi bi-check-circle"></i> Procedimiento creado exitosamente
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 1080;">
+                    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <?php
+                                    if ($success === 'creado') echo 'Procedimiento creado exitosamente';
+                                    elseif ($success === 'cambios') echo 'Cambios realizados';
+                                    else echo htmlspecialchars($success);
+                                ?>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
             
@@ -327,6 +337,15 @@ try {
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toastEl = document.getElementById('successToast');
+            if (toastEl) {
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        });
+    </script>
     <script src="includes/dark-mode.js"></script>
 </body>
 </html>

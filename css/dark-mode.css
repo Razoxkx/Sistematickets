@@ -429,11 +429,11 @@ a .bi {
 }
 
 :root[data-bs-theme="light"] a:not(.btn) .bi {
-    color: #0d6efd;
+    color: #ffffff;
 }
 
 :root[data-bs-theme="dark"] a:not(.btn) .bi {
-    color: #0d9aff;
+    color: #ffffff;
 }
 
 /* Iconos en badges */

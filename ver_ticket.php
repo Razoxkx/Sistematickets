@@ -1399,6 +1399,8 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             const ticketId = document.querySelector('input[name="ticket_id"]')?.value || new URLSearchParams(window.location.search).get('id');
             const comentario = document.querySelector('textarea[name="nuevo_comentario"]').value;
             
+            console.log('Enviando comentario:', {ticketId, comentario});
+            
             fetch('api_ticket.php?action=agregar_comentario', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -1409,12 +1411,18 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             })
             .then(r => r.json())
             .then(data => {
+                console.log('Respuesta del servidor:', data);
                 if (data.success) {
                     document.querySelector('textarea[name="nuevo_comentario"]').value = '';
                     agregarComentarioDOM(data.comentario);
                 } else {
+                    console.error('Error en respuesta:', data.error);
                     alert('Error: ' + data.error);
                 }
+            })
+            .catch(err => {
+                console.error('Error en AJAX:', err);
+                alert('Error al enviar comentario: ' + err.message);
             });
         }
         
@@ -1498,26 +1506,46 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
         // Agregar comentario al DOM sin recargar
         function agregarComentarioDOM(com) {
             const contenedor = document.querySelector('#comentarios-contenedor');
-            if (!contenedor) return;
+            if (!contenedor) {
+                console.error('Contenedor de comentarios no encontrado');
+                return;
+            }
+            
+            // Validar que com tenga datos
+            if (!com || !com.comentario) {
+                console.error('Comentario inválido:', com);
+                alert('Error: El comentario no se retornó correctamente del servidor');
+                return;
+            }
+            
+            console.log('Agregando comentario al DOM:', com);
             
             const tipoClase = com.tipo_comentario === 'cierre' ? 'comentario-cierre' : (com.tipo_comentario === 'asignacion' ? 'comentario-asignacion' : (com.tipo_comentario === 'edicion' ? 'comentario-edicion' : (com.tipo_comentario === 'mencion' ? 'comentario-mencion' : '')));
             
-            // Procesar menciones: tickets (#DCDXXXXXX), activos (#AKXXXXXXX) y usuarios (#usuario)
+            // Procesar menciones: tickets (#DCDXXXXXX), activos (#AKXXXXXXX), procedimientos (#DCD.TXXXXXXX) y usuarios (#usuario)
             let comentarioConMenciones = com.comentario
                 .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                // Menciones de tickets
-                .replace(/#(DCD\d{6})/gi, '<a href="ver_ticket.php?id=$1" class="ticket-mention" title="Ver ticket $1">#$1</a>')
-                // Menciones de activos
-                .replace(/#(AK\d{7})/gi, '<a href="ver_activo.php?id=$1" class="activo-mention" title="Ver activo $1">#$1</a>')
-                // Menciones de usuarios (cualquier #usuario que no sea ticket o activo)
-                .replace(/#([a-z0-9._-]+)/gi, function(match, usuario) {
-                    // Evitar procesar tickets y activos que ya fueron procesados
-                    if (/^(DCD\d{6}|AK\d{7})$/i.test(usuario)) {
-                        return match;
-                    }
-                    return '<a href="perfil_usuario.php?username=' + encodeURIComponent(usuario) + '" class="usuario-mention" title="Ver perfil de ' + usuario + '">#' + usuario + '</a>';
-                });
+                .replace(/>/g, '&gt;');
+                
+            // Menciones de procedimientos (#DCD.TXXXXXXX) - primero para evitar conflictos
+            comentarioConMenciones = comentarioConMenciones.replace(/#(DCD\.T\d{7})/gi, '<a href="ver_procedimiento.php?id=$1" class="procedimiento-mention" title="Ver procedimiento $1" target="_blank">#$1</a>');
+            
+            // Menciones de tickets
+            comentarioConMenciones = comentarioConMenciones.replace(/#(DCD\d{6})/gi, '<a href="ver_ticket.php?id=$1" class="ticket-mention" title="Ver ticket $1">#$1</a>');
+            
+            // Menciones de activos
+            comentarioConMenciones = comentarioConMenciones.replace(/#(AK\d{7})/gi, '<a href="ver_activo.php?id=$1" class="activo-mention" title="Ver activo $1">#$1</a>');
+            
+            // Menciones de usuarios (cualquier #usuario que no sea ticket, activo o procedimiento)
+            comentarioConMenciones = comentarioConMenciones.replace(/#([a-z0-9._-]+)/gi, function(match, usuario) {
+                // Evitar procesar que ya están en tags a
+                if (/^(DCD\d{6}|AK\d{7}|DCD\.T\d{7})$/i.test(usuario)) {
+                    return match;
+                }
+                return '<a href="perfil_usuario.php?username=' + encodeURIComponent(usuario) + '" class="usuario-mention" title="Ver perfil de ' + usuario + '">#' + usuario + '</a>';
+            });
+            
+            console.log('Comentario procesado:', comentarioConMenciones);
             
             // Determinar si mostrar botón de editar
             const userId = <?php echo $_SESSION["user_id"]; ?>;

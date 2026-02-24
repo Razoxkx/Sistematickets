@@ -8,11 +8,14 @@ if (!isset($_SESSION["user_id"])) {
     exit();
 }
 
-// Verificar permisos: solo admin puede acceder
-if (($_SESSION["role"] ?? "") !== "admin") {
+// Verificar permisos: admin accede a todo, tisupport solo a su propio usuario
+if (($_SESSION["role"] ?? "") !== "admin" && ($_SESSION["role"] ?? "") !== "tisupport") {
     header("Location: dashboard.php");
     exit();
 }
+
+// Flag para indicar si el usuario actual es tisupport
+$es_tisupport = $_SESSION["role"] === "tisupport";
 
 $error = "";
 $success = "";
@@ -30,8 +33,8 @@ if (isset($_GET["success"])) {
     }
 }
 
-// CREAR USUARIO - POST
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"])) {
+// CREAR USUARIO - POST (solo admin)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"]) && !$es_tisupport) {
     $username = trim($_POST["username"] ?? "");
     $email = trim($_POST["email"] ?? "");
     $role = $_POST["role"] ?? "viewer";
@@ -78,10 +81,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"])) {
 // EDITAR USUARIO - POST
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
     $user_id = $_POST["user_id"] ?? "";
-    $username = trim($_POST["username"] ?? "");
-    $email = trim($_POST["email"] ?? "");
-    $role = $_POST["role"] ?? "viewer";
-    $password_nueva = trim($_POST["password_nueva"] ?? "");
+    
+    // Verificar permisos: tisupport solo puede editar su propio usuario
+    if ($es_tisupport && $user_id != $_SESSION["user_id"]) {
+        $error = "No tienes permisos para editar otros usuarios";
+    } else {
+        $username = trim($_POST["username"] ?? "");
+        $email = trim($_POST["email"] ?? "");
+        $role = $_POST["role"] ?? "viewer";
+        $password_nueva = trim($_POST["password_nueva"] ?? "");
     
     if (empty($username)) {
         $error = "El nombre de usuario es obligatorio";
@@ -120,10 +128,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
             $error = "Error al actualizar usuario: " . $e->getMessage();
         }
     }
+    }
 }
 
-// ELIMINAR USUARIO - POST
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar"])) {
+// ELIMINAR USUARIO - POST (solo admin)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar"]) && !$es_tisupport) {
     $user_id = $_POST["user_id"] ?? "";
     if (!empty($user_id) && $user_id != $_SESSION["user_id"]) {
         try {
@@ -156,7 +165,13 @@ try {
     if ($has_email) $select_fields .= ", email";
     if ($has_necesita_cambiar) $select_fields .= ", necesita_cambiar_password";
     
-    $stmt = $conexion->query("SELECT $select_fields FROM users WHERE role != 'contacto' ORDER BY username");
+    // tisupport solo ve su propio usuario, admin ve todos
+    if ($es_tisupport) {
+        $stmt = $conexion->prepare("SELECT $select_fields FROM users WHERE id = ? AND role != 'contacto' ORDER BY username");
+        $stmt->execute([$_SESSION["user_id"]]);
+    } else {
+        $stmt = $conexion->query("SELECT $select_fields FROM users WHERE role != 'contacto' ORDER BY username");
+    }
     $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Agregar campos faltantes si no existen
@@ -174,6 +189,11 @@ try {
 // EDITAR - GET
 if (isset($_GET["editar"])) {
     $user_id = $_GET["editar"];
+    
+    // tisupport solo puede editar su propio usuario
+    if ($es_tisupport && $user_id != $_SESSION["user_id"]) {
+        $error = "No tienes permisos para editar otros usuarios";
+    } else {
     try {
         $select_fields = "id, username, role";
         if ($has_email) $select_fields .= ", email";
@@ -189,6 +209,7 @@ if (isset($_GET["editar"])) {
         }
     } catch (PDOException $e) {
         $error = "Error al obtener datos del usuario: " . $e->getMessage();
+    }
     }
 }
 ?>
@@ -236,12 +257,20 @@ if (isset($_GET["editar"])) {
                     <h3>👥 Gestión de Usuarios</h3>
                 </div>
                 
+                <?php if ($es_tisupport): ?>
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle"></i> <strong>Información:</strong> Como usuario de Soporte TI, solo puedes editar tu propia información de usuario.
+                </div>
+                <?php endif; ?>
+                
                 <!-- Botones de acción -->
+                <?php if (!$es_tisupport): ?>
                 <div class="mb-3">
                     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrearUsuario">
                         <i class="bi bi-plus-circle"></i> Crear Nuevo Usuario
                     </button>
                 </div>
+                <?php endif; ?>
                 
                 <!-- Tabla de Usuarios -->
                 <div class="card">
@@ -287,10 +316,12 @@ if (isset($_GET["editar"])) {
                                                 <a href="perfil_usuario.php?username=<?php echo urlencode($user['username']); ?>" class="btn btn-sm btn-info" title="Ver perfil">
                                                     <i class="bi bi-person"></i> Perfil
                                                 </a>
+                                                <?php if (!$es_tisupport || $user["id"] == $_SESSION["user_id"]): ?>
                                                 <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalEditarUsuario" onclick="cargarDatosEditar(<?php echo htmlspecialchars(json_encode($user)); ?>)">
                                                     <i class="bi bi-pencil"></i> Editar
                                                 </button>
-                                                <?php if ($user["id"] != $_SESSION["user_id"]): ?>
+                                                <?php endif; ?>
+                                                <?php if (!$es_tisupport && $user["id"] != $_SESSION["user_id"]): ?>
                                                     <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
                                                         <input type="hidden" name="user_id" value="<?php echo $user["id"]; ?>">
                                                         <input type="hidden" name="accion_eliminar" value="1">
@@ -315,6 +346,7 @@ if (isset($_GET["editar"])) {
     </div>
     
     <!-- Modal Crear Usuario -->
+    <?php if (!$es_tisupport): ?>
     <div class="modal fade" id="modalCrearUsuario" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -355,6 +387,9 @@ if (isset($_GET["editar"])) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
+        </div>
+    </div>
     
     <!-- Modal Editar Usuario -->
     <div class="modal fade" id="modalEditarUsuario" tabindex="-1">
@@ -378,12 +413,16 @@ if (isset($_GET["editar"])) {
                         </div>
                         <div class="mb-3">
                             <label for="role_edit" class="form-label">Rol *</label>
-                            <select class="form-select" id="role_edit" name="role" required>
+                            <select class="form-select" id="role_edit" name="role" required <?php echo $es_tisupport ? 'disabled' : ''; ?>>
                                 <option value="viewer">👁️ Lector</option>
                                 <option value="contacto">📇 Contacto</option>
                                 <option value="tisupport">🔧 Soporte TI</option>
                                 <option value="admin">🔑 Administrador</option>
                             </select>
+                            <?php if ($es_tisupport): ?>
+                            <input type="hidden" name="role" id="role_edit_hidden" value="">
+                            <small class="text-muted">Tu rol no puede ser modificado</small>
+                            <?php endif; ?>
                         </div>
                         <div class="mb-3">
                             <label for="password_edit" class="form-label">Nueva Contraseña (opcional)</label>
@@ -409,6 +448,9 @@ if (isset($_GET["editar"])) {
             document.getElementById('username_edit').value = usuario.username;
             document.getElementById('email_edit').value = usuario.email || '';
             document.getElementById('role_edit').value = usuario.role;
+            <?php if ($es_tisupport): ?>
+            document.getElementById('role_edit_hidden').value = usuario.role;
+            <?php endif; ?>
             document.getElementById('password_edit').value = '';
         }
 

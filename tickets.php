@@ -60,6 +60,7 @@ $tickets = [];
 $busqueda = $_GET["buscar"] ?? "";
 $estado_filtro = $_GET["estado"] ?? "";
 $mis_tickets = $_GET["mis_tickets"] ?? "";
+$mostrar_cerrados = $_GET["cerrados"] ?? "0";
 $pagina = max(1, (int)($_GET["pagina"] ?? 1));
 $orden = $_GET["orden"] ?? "fecha";
 $direccion = $_GET["dir"] ?? "DESC";
@@ -77,7 +78,10 @@ if (!in_array($direccion, ['ASC', 'DESC'])) {
 
 // Estados válidos abiertos
 $estados_abiertos = ['sin abrir', 'en conocimiento', 'en proceso', 'pendiente de cierre'];
-if (!empty($estado_filtro) && !in_array($estado_filtro, $estados_abiertos)) {
+// Si mostrar cerrados, no permitir filtro por estado abierto
+if ($mostrar_cerrados === "1") {
+    $estado_filtro = "";
+} elseif (!empty($estado_filtro) && !in_array($estado_filtro, $estados_abiertos)) {
     $estado_filtro = "";
 }
 
@@ -112,14 +116,17 @@ $conteo_cerrados = $stmt_conteo_cerrados->fetch(PDO::FETCH_ASSOC)['total'];
 
 try {
     // Contar total de tickets
+    // Determinar si mostrar cerrados o abiertos
+    $es_cerrado_condicion = ($mostrar_cerrados === "1") ? "1" : "0";
+    
     // Si es "mis tickets", mostrar padre e hijo; si no, solo mostrar padre
     if (!empty($mis_tickets) && $mis_tickets === "1") {
         // Mostrar tickets padre Y tickets hijo que le pertenecen
-        $where = "t.es_cerrado = 0 AND (t.ticket_padre_id IS NULL OR t.responsable = ?)";
+        $where = "t.es_cerrado = " . $es_cerrado_condicion . " AND (t.ticket_padre_id IS NULL OR t.responsable = ?)";
         $params = [$_SESSION["user_id"]];
     } else {
         // Solo mostrar tickets padre (lista general)
-        $where = "t.es_cerrado = 0 AND t.ticket_padre_id IS NULL";
+        $where = "t.es_cerrado = " . $es_cerrado_condicion . " AND t.ticket_padre_id IS NULL";
         $params = [];
     }
     
@@ -270,7 +277,7 @@ function getEstadoColor($estado) {
             <a href="tickets.php?estado=en%20conocimiento<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'en conocimiento' ? 'btn-info' : 'btn-outline-info'; ?>">En conocimiento (<?php echo $conteos_estado['en conocimiento']; ?>)</a>
             <a href="tickets.php?estado=en%20proceso<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'en proceso' ? 'btn-warning' : 'btn-outline-warning'; ?>">En proceso (<?php echo $conteos_estado['en proceso']; ?>)</a>
             <a href="tickets.php?estado=pendiente%20de%20cierre<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'pendiente de cierre' ? 'btn-danger' : 'btn-outline-danger'; ?>">Pendiente de cierre (<?php echo $conteos_estado['pendiente de cierre']; ?>)</a>
-            <a href="tickets_cerrados.php" class="btn btn-outline-success">Tickets Cerrados (<?php echo $conteo_cerrados; ?>)</a>
+            <a href="tickets.php?cerrados=1<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $mostrar_cerrados === '1' ? 'btn-success' : 'btn-outline-success'; ?>">Tickets Cerrados (<?php echo $conteo_cerrados; ?>)</a>
             
         </div>
         

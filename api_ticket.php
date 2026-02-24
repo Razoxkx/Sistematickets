@@ -33,6 +33,8 @@ try {
     if ($action === "agregar_comentario") {
         $comentario = $_POST["comentario"] ?? "";
         
+        error_log("Iniciando agregar_comentario: ticket_id=$ticket_id, comentario=" . substr($comentario, 0, 50));
+        
         if (empty($comentario)) {
             echo json_encode(["error" => "El comentario no puede estar vacío"]);
             exit();
@@ -41,6 +43,16 @@ try {
         // Insertar comentario original en el ticket actual (sin tipo_comentario)
         $stmt = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario, tipo_comentario) VALUES (?, ?, ?, NULL)");
         $stmt->execute([$ticket_id, $_SESSION["user_id"], $comentario]);
+        
+        // Guardar el ID del comentario inmediatamente
+        $comentario_id = $conexion->lastInsertId();
+        error_log("Comentario insertado con ID: " . $comentario_id);
+        
+        if (!$comentario_id) {
+            error_log("ERROR: No se obtuvo ID del comentario");
+            echo json_encode(["error" => "Error al insertar el comentario"]);
+            exit();
+        }
         
         // Detectar menciones de tickets en el comentario
         if (preg_match_all('/#(DCD\d{6})/i', $comentario, $matches)) {
@@ -79,7 +91,6 @@ try {
         
         // Detectar menciones de procedimientos en el comentario (#DCD.T0000001)
         if (preg_match_all('/#(DCD\.T\d{7})/i', $comentario, $matches)) {
-            $comentario_id = $conexion->lastInsertId();
             foreach ($matches[1] as $id_procedimiento) {
                 // Obtener el ID interno del procedimiento
                 $stmt_proc = $conexion->prepare("SELECT id FROM procedimientos WHERE id_procedimiento = ?");
@@ -97,17 +108,26 @@ try {
             }
         }
         
-        // Obtener el comentario que se acaba de crear
+        // Obtener el comentario que se acaba de crear usando el ID guardado
         $stmt = $conexion->prepare("
             SELECT c.*, u.username, 
                    COALESCE(um.username, '') as usuario_modifico_nombre
             FROM comentarios_tickets c
             JOIN users u ON c.usuario_id = u.id
             LEFT JOIN users um ON c.usuario_modificado_por = um.id
-            WHERE c.id = LAST_INSERT_ID()
+            WHERE c.id = ?
         ");
-        $stmt->execute();
+        $stmt->execute([$comentario_id]);
         $comentario_nuevo = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Debugar si el comentario no se recuperó
+        if (!$comentario_nuevo) {
+            error_log("ERROR: Comentario no encontrado con ID: " . $comentario_id);
+            echo json_encode(["error" => "Error al recuperar el comentario creado"]);
+            exit();
+        }
+        
+        error_log("Comentario creado exitosamente: " . json_encode($comentario_nuevo));
         
         // Cambio automático de estado: si está en "en conocimiento", pasar a "en proceso"
         $stmt = $conexion->prepare("SELECT estado FROM tickets WHERE id = ?");
@@ -127,7 +147,11 @@ try {
             $stmt_historial->execute([$ticket_id, "en conocimiento", "en proceso", $_SESSION["user_id"]]);
         }
         
-        echo json_encode(["success" => true, "comentario" => $comentario_nuevo]);
+        if ($comentario_nuevo) {
+            echo json_encode(["success" => true, "comentario" => $comentario_nuevo]);
+        } else {
+            echo json_encode(["error" => "No se pudo recuperar el comentario creado"]);
+        }
     }
     
     // CAMBIAR ESTADO
@@ -332,6 +356,7 @@ try {
     
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["error" => $e->getMessage()]);
+    error_log("PDOException en api_ticket.php: " . $e->getMessage());
+    echo json_encode(["error" => $e->getMessage(), "success" => false]);
 }
 ?>

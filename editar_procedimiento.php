@@ -78,12 +78,9 @@ try {
             ");
             $stmt->execute([$titulo, $tipo, $cuerpo, $procedimiento_id]);
             
-            $success = "Procedimiento actualizado correctamente";
-            
-            // Recargar datos
-            $stmt = $conexion->prepare("SELECT * FROM procedimientos WHERE id = ?");
-            $stmt->execute([$procedimiento_id]);
-            $procedimiento = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Redirigir al procedimiento actualizado con mensaje
+            header("Location: ver_procedimiento.php?id=" . $procedimiento_id . "&success=cambios");
+            exit();
         }
     }
 } catch (PDOException $e) {

@@ -18,6 +18,11 @@ if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
 $procedimientos = [];
 $busqueda = $_GET["buscar"] ?? "";
 $tipo_filtro = $_GET["tipo"] ?? "";
+$pagina = max(1, (int)($_GET["pagina"] ?? 1));
+$procedimientos_por_pagina = 6;
+$offset = ($pagina - 1) * $procedimientos_por_pagina;
+$total_procedimientos = 0;
+$total_paginas = 1;
 
 try {
     $where = "es_activo = 1";
@@ -33,6 +38,13 @@ try {
         $params[] = $tipo_filtro;
     }
     
+    // Contar total de procedimientos
+    $stmt_count = $conexion->prepare("SELECT COUNT(*) as total FROM procedimientos WHERE $where");
+    $stmt_count->execute($params);
+    $total_procedimientos = $stmt_count->fetch(PDO::FETCH_ASSOC)['total'];
+    $total_paginas = ceil($total_procedimientos / $procedimientos_por_pagina);
+    
+    // Obtener procedimientos paginados
     $stmt = $conexion->prepare("
         SELECT p.*, u.username as autor_nombre,
                (SELECT COUNT(*) FROM menciones_procedimientos WHERE procedimiento_id = p.id) as total_menciones
@@ -40,6 +52,7 @@ try {
         JOIN users u ON p.usuario_creador = u.id
         WHERE $where
         ORDER BY p.fecha_creacion DESC
+        LIMIT " . intval($procedimientos_por_pagina) . " OFFSET " . intval($offset) . "
     ");
     $stmt->execute($params);
     $procedimientos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -67,8 +80,45 @@ try {
         }
         
         .procedimiento-card {
-            
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            height: 200px;
+        }
+        
+        .procedimiento-card .card-body {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .procedimiento-card .card-title {
+            min-height: 50px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-wrap: break-word;
+        }
+        
+        .procedimiento-card .card-text {
+            flex-grow: 1;
+            height: 80px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .procedimiento-card .card-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .procedimiento-card:hover {
@@ -83,6 +133,10 @@ try {
         
         [data-bs-theme="dark"] .procedimiento-card:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        
+        [data-bs-theme="dark"] .procedimiento-card .card-footer {
+            border-top-color: #444;
         }
         
         [data-bs-theme="dark"] .form-control,
@@ -168,11 +222,11 @@ try {
                         <?php foreach ($procedimientos as $proc): ?>
                             <div class="col-md-6">
                                 <a href="ver_procedimiento.php?id=<?php echo $proc["id"]; ?>" class="text-decoration-none">
-                                    <div class="card procedimiento-card h-100">
-                                        <div class="card-body">
+                                    <div class="card procedimiento-card">
+                                        <div class="card-body d-flex flex-column">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <h5 class="card-title mb-0"><?php echo htmlspecialchars($proc["titulo"]); ?></h5>
-                                                <span class="badge <?php echo $proc["tipo_procedimiento"] === "técnico" ? "bg-info" : "bg-warning"; ?>">
+                                                <span class="badge <?php echo $proc["tipo_procedimiento"] === "técnico" ? "bg-info" : "bg-warning"; ?> flex-shrink-0 ms-2">
                                                     <?php echo ucfirst(substr($proc["tipo_procedimiento"], 0, 1)); ?>
                                                 </span>
                                             </div>
@@ -181,17 +235,19 @@ try {
                                                 <i class="bi bi-key"></i> <?php echo htmlspecialchars($proc["id_procedimiento"]); ?>
                                             </p>
                                             
-                                            <p class="card-text text-muted small" style="height: 60px; overflow: hidden;">
+                                            <p class="card-text text-muted small flex-grow-1">
                                                 <?php echo htmlspecialchars(substr($proc["cuerpo"], 0, 150)); ?>...
                                             </p>
                                             
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <small class="text-muted">
-                                                    <i class="bi bi-person"></i> <?php echo htmlspecialchars($proc["autor_nombre"]); ?>
-                                                </small>
-                                                <span class="badge bg-secondary">
-                                                    <i class="bi bi-link-45deg"></i> <?php echo $proc["total_menciones"]; ?>
-                                                </span>
+                                            <div class="card-footer bg-transparent mt-auto pt-3 pb-0 px-0">
+                                                <div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">
+                                                    <small class="text-muted">
+                                                        <i class="bi bi-person"></i> <?php echo htmlspecialchars($proc["autor_nombre"]); ?>
+                                                    </small>
+                                                    <span class="badge" style="background-color: #667fea;">
+                                                        <i class="bi bi-link-45deg"></i> <?php echo $proc["total_menciones"]; ?>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -199,6 +255,35 @@ try {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    
+                    <!-- Paginación -->
+                    <?php if ($total_paginas > 1): ?>
+                    <nav aria-label="Paginación" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <?php if ($pagina > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?pagina=1<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?><?php echo !empty($tipo_filtro) ? '&tipo=' . urlencode($tipo_filtro) : ''; ?>">Primera</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?pagina=<?php echo $pagina - 1; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?><?php echo !empty($tipo_filtro) ? '&tipo=' . urlencode($tipo_filtro) : ''; ?>">Anterior</a>
+                            </li>
+                            <?php endif; ?>
+                            
+                            <li class="page-item active">
+                                <span class="page-link">Página <?php echo $pagina; ?> de <?php echo $total_paginas; ?></span>
+                            </li>
+                            
+                            <?php if ($pagina < $total_paginas): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?pagina=<?php echo $pagina + 1; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?><?php echo !empty($tipo_filtro) ? '&tipo=' . urlencode($tipo_filtro) : ''; ?>">Siguiente</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?pagina=<?php echo $total_paginas; ?><?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?><?php echo !empty($tipo_filtro) ? '&tipo=' . urlencode($tipo_filtro) : ''; ?>">Última</a>
+                            </li>
+                            <?php endif; ?>
+                        </ul>
+                    </nav>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
