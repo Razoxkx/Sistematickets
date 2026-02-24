@@ -150,6 +150,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin-left: 5px;
             font-size: 0.75em;
         }
+        
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+        }
     </style>
 </head>
 <body>

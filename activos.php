@@ -122,19 +122,28 @@ try {
             background: #1e1e1e;
         }
         
-        .container-fluid {
-            padding-top: 30px;
-            padding-bottom: 30px;
+        .container {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h1 {
+            font-size: 2rem;
         }
         
         h2 {
-            color: #667eea;
-            font-weight: 700;
+            font-size: 1.75rem;
             margin-bottom: 30px;
         }
         
-        [data-bs-theme="dark"] h2 {
-            color: #8b9dff;
+        h3 {
+            font-size: 1.5rem;
         }
         
         .table {
@@ -238,10 +247,10 @@ try {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid">
-        <div class="row mb-5">
+    <div class="container mt-5">
+        <div class="row mb-4">
             <div class="col-md-12">
-                <h2><i class="bi bi-boxes"></i> Gestión de Activos</h2>
+                <h2><i"></i> Gestión de Activos</h2>
             </div>
         </div>
         

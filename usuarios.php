@@ -222,6 +222,17 @@ if (isset($_GET["editar"])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Gestión de Usuarios</title>
+    <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+        }
+    </style>
     <script>
         (function() {
             const darkMode = localStorage.getItem('darkMode');
@@ -254,7 +265,7 @@ if (isset($_GET["editar"])) {
         <div class="row">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3>👥 Gestión de Usuarios</h3>
+                    <h3>Gestión de Usuarios</h3>
                 </div>
                 
                 <?php if ($es_tisupport): ?>

@@ -160,6 +160,16 @@ try {
         [data-bs-theme="dark"] .card-title {
             color: #e0e0e0;
         }
+        
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h1 {
+            font-size: 2rem;
+        }
     </style>
     <script>
         (function() {
@@ -175,11 +185,11 @@ try {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container mt-4">
+    <div class="container mt-5">
         <div class="row">
-            <div class="col-md-10">
+            <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1><i class="bi bi-file-earmark-text"></i> Procedimientos</h1>
+                    <h1><i></i> Procedimientos</h1>
                     <a href="crear_procedimiento.php" class="btn btn-success">
                         <i class="bi bi-plus-circle"></i> Nuevo Procedimiento
                     </a>

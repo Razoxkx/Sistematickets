@@ -92,6 +92,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Editar Cuenta de Servicio</title>
     <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
         body {
             background: linear-gradient(to bottom, #f8f9fa, #ffffff);
             margin-left: 280px;
@@ -102,7 +108,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
         }
 
         /* Contenedor principal responsivo */
-        .contenedor-principal {
+        .container {
             margin-top: 20px;
             padding-left: 0;
             padding-right: 0;
@@ -113,7 +119,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
                 margin-left: 70px;
             }
 
-            .contenedor-principal {
+            .container {
                 margin-top: 15px;
             }
         }
@@ -206,7 +212,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["actualizar_cuenta"])) 
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid contenedor-principal">
+    <div class="container mt-5">
         <div class="row header-editar mb-4">
             <div class="col-12">
                 <h1><i class="bi bi-pencil-square"></i> Editar Cuenta de Servicio</h1>

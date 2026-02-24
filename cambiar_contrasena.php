@@ -97,6 +97,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Cambiar Contraseña</title>
     <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
         body {
             
         }

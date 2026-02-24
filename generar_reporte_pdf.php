@@ -84,7 +84,7 @@ $html = '
     <meta charset="UTF-8">
     <style>
         body { font-family: Arial, sans-serif; font-size: 10pt; margin: 10px; }
-        h1, h2 { color: #333; }
+        h1, h2 { color: #8b9dff; font-weight: 700; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         table { width: 100%; border-collapse: collapse; margin: 10px 0; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #0d6efd; color: white; }

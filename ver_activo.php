@@ -71,6 +71,13 @@ try {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Ver Activo - <?php echo htmlspecialchars($activo["rfk"] ?? ""); ?></title>
+    <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
     <script>
         (function() {
             const darkMode = localStorage.getItem('darkMode');

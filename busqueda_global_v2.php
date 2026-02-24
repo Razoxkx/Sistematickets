@@ -188,6 +188,16 @@ if ($is_ajax) {
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Búsqueda Global</title>
     <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+        }
+
         .resultado-card {  }
         .resultado-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     </style>
@@ -212,7 +222,7 @@ if ($is_ajax) {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid mt-4">
+    <div class="container mt-5">
         <div class="row mb-4">
             <div class="col-md-12">
                 <h1><i class="bi bi-search"></i> Búsqueda Global</h1>

@@ -94,6 +94,12 @@ try {
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Tickets Cerrados</title>
     <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
         .ticket-list-row { border-bottom: 1px solid #dee2e6; padding: 15px 0; cursor: pointer; }
         .ticket-list-row:hover { background-color: #f8f9fa; }
         [data-bs-theme="dark"] .ticket-list-row:hover { background-color: #2d3035; }
@@ -113,7 +119,7 @@ try {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid mt-5">
+    <div class="container mt-5">
         <div class="row">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">

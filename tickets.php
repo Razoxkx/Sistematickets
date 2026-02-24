@@ -221,6 +221,16 @@ function getEstadoColor($estado) {
         .table-responsive { margin: 0 -12px; padding: 0 12px;}
         .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
         
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+        }
+        
     </style>
     <script>
         (function() {

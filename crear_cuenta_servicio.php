@@ -53,6 +53,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_cuenta"])) {
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Crear Cuenta de Servicio</title>
     <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
         body {
             background: linear-gradient(to bottom, #f8f9fa, #ffffff);
             margin-left: 280px;
@@ -106,9 +112,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_cuenta"])) {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="contenedor-principal">
-        <div class="container-fluid">
-            <div class="row header-crear mb-4">
+    <div class=\"container mt-5\">
+        <div class=\"row header-crear mb-4\">
                 <div class="col-12 col-md-8">
                     <h1><i class="bi bi-plus-circle"></i> Crear Cuenta de Servicio</h1>
                 </div>
@@ -205,7 +210,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_cuenta"])) {
                 </div>
             </div>
         </div>
-    </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>

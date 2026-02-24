@@ -74,6 +74,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Cambiar Mi Contraseña</title>
+    <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
     <script>
         (function() {
             const darkMode = localStorage.getItem('darkMode');

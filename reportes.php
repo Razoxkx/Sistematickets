@@ -94,6 +94,18 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="css/dark-mode.css" rel="stylesheet">
     <title>Reportes de Tickets</title>
+    <style>
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+            margin-bottom: 30px;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     <script>
         (function() {
@@ -109,10 +121,10 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid mt-5 mb-5">
+    <div class="container mt-5 mb-5">
         <div class="row mb-4">
             <div class="col-md-12">
-                <h2 class="mb-4"><i class="bi bi-graph-up"></i> Reportes y Gráficas</h2>
+                <h2 class="mb-4"><i></i>Reportes y Gráficas</h2>
             </div>
         </div>
 
@@ -127,7 +139,7 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-sm btn-outline-primary" onclick="cargarDatos('semana')">📅 Última Semana</button>
                                     <button class="btn btn-sm btn-outline-primary" onclick="cargarDatos('mes')">📆 Último Mes</button>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="cargarDatos('año')">📊 Último Año</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="cargarDatos('año')">Último Año</button>
                                     <button class="btn btn-sm btn-outline-primary active" onclick="cargarDatos('todo')">🔢 Todo el Tiempo</button>
                                 </div>
                             </div>
@@ -492,7 +504,7 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
                             ✓ Gráficas filtradas por rango: ${fechaDesde} a ${fechaHasta}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         `;
-                        document.querySelector('.container-fluid').insertBefore(alert, document.querySelector('.row').nextSibling);
+                        document.querySelector('.container').insertBefore(alert, document.querySelector('.row').nextSibling);
                         setTimeout(() => alert.remove(), 4000);
                     } else {
                         alert('Error: ' + data.error);

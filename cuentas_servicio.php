@@ -94,7 +94,7 @@ try {
         }
 
         /* Contenedor principal responsivo */
-        .contenedor-principal {
+        .container {
             margin-top: 20px;
             padding-left: 0;
             padding-right: 0;
@@ -110,13 +110,23 @@ try {
                 margin-left: 70px;
             }
 
-            .contenedor-principal {
+            .container {
                 margin-top: 15px;
             }
         }
 
         .cuenta-card {
             
+        }
+        
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h1 {
+            font-size: 2rem;
         }
 
         .cuenta-card:hover {
@@ -282,11 +292,11 @@ try {
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid contenedor-principal">
+    <div class="container mt-5">
         <!-- Header -->
         <div class="row header-cuentas mb-4">
             <div class="col-12">
-                <h1><i class="bi bi-key-fill"></i> Cuentas de Servicio</h1>
+                <h1><i></i> Cuentas de Servicio</h1>
                 <p class="text-muted">Catálogo centralizado de credenciales de servicios</p>
             </div>
         </div>

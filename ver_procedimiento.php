@@ -176,12 +176,20 @@ try {
             border-radius: 4px;
             font-weight: bold;
         }
+        
+        h1, h2, h3 {
+            color: #8b9dff;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h1 {\n            font-size: 2rem;\n        }
     </style>
 </head>
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container-fluid" style="padding: 30px 50px;">
+    <div class="container mt-5">
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger">
                 <i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
