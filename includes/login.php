@@ -51,9 +51,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     header("Location: cambiar_contrasena.php");
                     exit();
                 } else {
-                    // Ir al dashboard normalmente
-                    error_log("Redirigiendo a dashboard.php");
-                    header("Location: dashboard.php");
+                    // Ir a tickets normalmente
+                    error_log("Redirigiendo a tickets.php");
+                    header("Location: tickets.php");
                     exit();
                 }
             } else {

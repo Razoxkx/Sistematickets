@@ -11,7 +11,7 @@ if (!isset($_SESSION["user_id"])) {
 // Verificar permisos: admin y tisupport
 $permisos = ['admin', 'tisupport'];
 if (!in_array($_SESSION["role"] ?? "", $permisos)) {
-    header("Location: dashboard.php");
+    header("Location: tickets.php");
     exit();
 }
 

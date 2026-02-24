@@ -10,7 +10,7 @@ if (!isset($_SESSION["user_id"])) {
 
 // Verificar permisos: solo admin
 if (($_SESSION["role"] ?? "") !== "admin") {
-    header("Location: dashboard.php");
+    header("Location: tickets.php");
     exit();
 }
 

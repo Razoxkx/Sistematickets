@@ -11,7 +11,7 @@ if (!isset($_SESSION["user_id"])) {
 // Verificar permisos: solo tisupport y admin pueden crear tickets
 $permisos = ['tisupport', 'admin'];
 if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
-    header("Location: dashboard.php");
+    header("Location: tickets.php");
     exit();
 }
 
