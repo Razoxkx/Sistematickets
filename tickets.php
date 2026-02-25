@@ -231,6 +231,131 @@ function getEstadoColor($estado) {
             font-size: 1.75rem;
         }
         
+        /* Optimizaciones para responsividad */
+        .btn-filtro-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .btn-filtro-container .btn {
+            padding: 8px 12px;
+            font-size: 13px;
+            white-space: nowrap;
+            flex: 0 1 auto;
+        }
+        
+        /* Tablet Landscape o Normal (MD: 768px-991px) */
+        @media (max-width: 991px) and (orientation: landscape) {
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .btn-filtro-container .btn {
+                padding: 6px 8px;
+                font-size: 11px;
+                flex: 0 1 calc(50% - 4px);
+            }
+        }
+        
+        /* Tablet Portrait o muy angosto (max-width: 991px) */
+        @media (max-width: 991px) {
+            .container {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .btn-filtro-container .btn {
+                padding: 5px 7px;
+                font-size: 10.5px;
+                flex: 0 1 calc(33.333% - 5px);
+            }
+            
+            table {
+                font-size: 13px;
+            }
+            
+            table th, table td {
+                padding: 10px 6px;
+            }
+            
+            .btn-sm {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            
+            #searchTickets {
+                font-size: 13px;
+                padding: 8px 10px;
+            }
+            
+            .badge {
+                font-size: 11px;
+                padding: 4px 6px;
+            }
+            
+            .page-link {
+                padding: 0.5rem 0.75rem;
+                font-size: 12px;
+            }
+        }
+        
+        /* Tablets medianas y pequeñas (LG: 992px y más) ocultar columnas menos importantes */
+        @media (max-width: 1199px) {
+            .table-responsive table tr td:nth-child(5),
+            .table-responsive table tr th:nth-child(5) {
+                display: none;
+            }
+        }
+        
+        /* Muy pequeño - ocultar más columnas */
+        @media (max-width: 768px) {
+            .table-responsive table tr td:nth-child(4),
+            .table-responsive table tr th:nth-child(4),
+            .table-responsive table tr td:nth-child(6),
+            .table-responsive table tr th:nth-child(6) {
+                display: none;
+            }
+            
+            .btn-filtro-container .btn {
+                padding: 5px 6px;
+                font-size: 9px;
+                flex: 0 1 calc(50% - 4px);
+            }
+        }
+        
+        /* Extra pequeño */
+        @media (max-width: 600px) {
+            .btn-filtro-container .btn {
+                flex: 0 1 calc(50% - 3px);
+                padding: 4px 5px;
+                font-size: 8.5px;
+            }
+        }
+        
+        /* Hacer scroll horizontal más suave en tablets */
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Mejorar botón crear ticket en tablet */
+        @media (max-width: 991px) {
+            .btn-create-ticket {
+                padding: 10px 16px !important;
+                font-size: 15px !important;
+                width: 100%;
+            }
+        }
     </style>
     <script>
         (function() {
@@ -253,7 +378,7 @@ function getEstadoColor($estado) {
         <div class="row mb-4">
             <div class="col-md-12">
                 <h2>Tickets</h2><br>
-                <a href="crear_ticket.php" class="btn btn-danger" style="padding: 12px 24px; font-size: 18px;">+ Crear Nuevo Ticket</a>
+                <a href="crear_ticket.php" class="btn btn-danger btn-create-ticket">+ Crear Nuevo Ticket</a>
             </div>
         </div>
         
@@ -267,8 +392,8 @@ function getEstadoColor($estado) {
         <!-- Buscador -->
         <div class="card mb-4">
             <div class="card-body">
-                <div class="d-flex gap-2">
-                    <input type="text" id="searchTickets" class="form-control" placeholder="Buscar por número (DCD...), título o solicitante" value="<?php echo htmlspecialchars($busqueda); ?>">
+                <div class="d-flex gap-2 flex-wrap">
+                    <input type="text" id="searchTickets" class="form-control" placeholder="Buscar ticket..." value="<?php echo htmlspecialchars($busqueda); ?>">
                 </div>
             </div>
         </div>
@@ -280,15 +405,14 @@ function getEstadoColor($estado) {
         </div>
         
         <!-- Botones de bandeja por estado -->
-        <div class="mb-3">
+        <div class="btn-filtro-container">
             <a href="tickets.php" class="btn <?php echo empty($estado_filtro) && empty($mis_tickets) ? 'btn-primary' : 'btn-outline-primary'; ?>" title="Todos los tickets abiertos">Todos</a>
             <a href="tickets.php?mis_tickets=1<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo !empty($mis_tickets) ? 'btn-info' : 'btn-outline-info'; ?>">Mis Tickets</a>
             <a href="tickets.php?estado=sin%20abrir<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'sin abrir' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">Sin abrir (<?php echo $conteos_estado['sin abrir']; ?>)</a>
             <a href="tickets.php?estado=en%20conocimiento<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'en conocimiento' ? 'btn-info' : 'btn-outline-info'; ?>">En conocimiento (<?php echo $conteos_estado['en conocimiento']; ?>)</a>
             <a href="tickets.php?estado=en%20proceso<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'en proceso' ? 'btn-warning' : 'btn-outline-warning'; ?>">En proceso (<?php echo $conteos_estado['en proceso']; ?>)</a>
-            <a href="tickets.php?estado=pendiente%20de%20cierre<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'pendiente de cierre' ? 'btn-danger' : 'btn-outline-danger'; ?>">Pendiente de cierre (<?php echo $conteos_estado['pendiente de cierre']; ?>)</a>
-            <a href="tickets.php?cerrados=1<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $mostrar_cerrados === '1' ? 'btn-success' : 'btn-outline-success'; ?>">Tickets Cerrados (<?php echo $conteo_cerrados; ?>)</a>
-            
+            <a href="tickets.php?estado=pendiente%20de%20cierre<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $estado_filtro === 'pendiente de cierre' ? 'btn-danger' : 'btn-outline-danger'; ?>">Pendiente (<?php echo $conteos_estado['pendiente de cierre']; ?>)</a>
+            <a href="tickets.php?cerrados=1<?php echo !empty($busqueda) ? '&buscar=' . urlencode($busqueda) : ''; ?>" class="btn <?php echo $mostrar_cerrados === '1' ? 'btn-success' : 'btn-outline-success'; ?>">Cerrados (<?php echo $conteo_cerrados; ?>)</a>
         </div>
         
         <!-- Listado de Tickets -->

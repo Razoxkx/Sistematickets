@@ -232,6 +232,123 @@ if (isset($_GET["editar"])) {
         h2 {
             font-size: 1.75rem;
         }
+        
+        /* Optimizaciones para responsividad en tablets */
+        .btn-accion-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .btn-accion-container .btn {
+            padding: 8px 12px;
+            font-size: 13px;
+            white-space: nowrap;
+            flex: 0 1 auto;
+        }
+        
+        /* Tablet Landscape (MD: 768px-991px) */
+        @media (max-width: 991px) and (orientation: landscape) {
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            
+            h2, h3 {
+                font-size: 1.5rem;
+            }
+            
+            .btn-accion-container .btn {
+                padding: 6px 10px;
+                font-size: 11px;
+                flex: 0 1 calc(50% - 4px);
+            }
+        }
+        
+        /* Tablet Portrait o muy angosto (max-width: 991px) */
+        @media (max-width: 991px) {
+            .container {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+            
+            h2, h3 {
+                font-size: 1.5rem;
+            }
+            
+            .btn-accion-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 8px;
+                margin-bottom: 1rem;
+            }
+            
+            .btn-accion-container .btn {
+                padding: 6px 8px;
+                font-size: 11px;
+                width: 100%;
+            }
+            
+            table {
+                font-size: 13px;
+            }
+            
+            table th, table td {
+                padding: 10px 6px;
+            }
+            
+            .btn-sm {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            
+            .badge {
+                font-size: 11px;
+                padding: 4px 6px;
+            }
+            
+            input[type="text"],
+            input[type="email"],
+            select {
+                font-size: 13px;
+                padding: 6px 8px;
+            }
+            
+            .form-control, .form-select {
+                font-size: 13px;
+            }
+        }
+        
+        /* Tablets pequeñas/Móvil (max-width: 768px) */
+        @media (max-width: 768px) {
+            .btn-accion-container {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+            
+            .btn-accion-container .btn {
+                padding: 5px 6px;
+                font-size: 10px;
+                width: 100%;
+            }
+            
+            table thead {
+                font-size: 12px;
+            }
+        }
+        
+        /* Muy pequeño */
+        @media (max-width: 600px) {
+            .btn-accion-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
     <script>
         (function() {
@@ -276,7 +393,7 @@ if (isset($_GET["editar"])) {
                 
                 <!-- Botones de acción -->
                 <?php if (!$es_tisupport): ?>
-                <div class="mb-3">
+                <div class="btn-accion-container">
                     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrearUsuario">
                         <i class="bi bi-plus-circle"></i> Crear Nuevo Usuario
                     </button>

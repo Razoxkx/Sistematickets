@@ -186,6 +186,22 @@ try {
         ");
         $stmt_historial->execute([$ticket_id, $estado_anterior, $nuevo_estado, $_SESSION["user_id"]]);
         
+        // Crear comentario automático de trazabilidad para cambios de estado
+        $usuario = $_SESSION["username"] ?? "Sistema";
+        
+        if ($estado_anterior === "sin abrir" && $nuevo_estado === "en conocimiento") {
+            // Transición: sin abrir -> en conocimiento
+            $mensaje = "📋 Ticket abierto por " . htmlspecialchars($usuario) . ". El soporte TI ha tomado conocimiento del caso.";
+            $tipo = 'apertura';
+        } else {
+            // Otros cambios de estado
+            $mensaje = "↪️ " . htmlspecialchars($usuario) . " cambió el estado a '" . htmlspecialchars($nuevo_estado) . "'";
+            $tipo = 'cambio_estado';
+        }
+        
+        $stmt_comment = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario, tipo_comentario) VALUES (?, ?, ?, ?)");
+        $stmt_comment->execute([$ticket_id, $_SESSION["user_id"], $mensaje, $tipo]);
+        
         echo json_encode(["success" => true, "estado" => $nuevo_estado]);
     }
     

@@ -293,7 +293,7 @@ try {
         }
         
         h1, h2, h3 {
-            color: #8b9dff;
+            color: white;
             font-weight: 700;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -410,8 +410,8 @@ try {
                             <i class="bi bi-download"></i> Descargar
                         </a>
                         <button class="pdf-btn pdf-btn-ver" 
-                                onclick="window.open('descargar_pdf_procedimiento.php?id=<?php echo htmlspecialchars($procedimiento_id); ?>&ver=1', '_blank')">
-                            <i class="bi bi-eye"></i> Ver en navegador
+                                onclick="abrirVisorPDF('descargar_pdf_procedimiento.php?id=<?php echo htmlspecialchars($procedimiento_id); ?>&ver=1')">
+                            <i class="bi bi-eye"></i> Ver
                         </button>
                     </div>
                 </div>
@@ -490,8 +490,133 @@ try {
         </div>
     </div>
     
+    <!-- Modal Visor PDF -->
+    <div class="modal fade" id="modalVisorPDF" tabindex="-1" aria-labelledby="modalVisorPDFLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalVisorPDFLabel"><i class="bi bi-file-pdf"></i> Previsualización PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="height: 80vh; overflow-y: auto; background: #f0f0f0; padding: 10px;">
+                    <div id="pdfContainer" style="display: flex; justify-content: center; align-items: flex-start;">
+                        <canvas id="pdfCanvas" style="max-width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"></canvas>
+                    </div>
+                    <div id="pdfLoading" style="text-align: center; padding: 20px; display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Cargando documento PDF...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="me-auto">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPrevPage" onclick="previousPage()" title="Página anterior">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <span id="pageInfo" class="ms-2 me-2" style="font-size: 0.9rem;">-</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnNextPage" onclick="nextPage()" title="Página siguiente">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    <a href="#" id="btnDescargarPDF" class="btn btn-primary" download>
+                        <i class="bi bi-download"></i> Descargar
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Configurar worker de PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let currentPDF = null;
+        let currentPageNumber = 1;
+        let totalPages = 0;
+        let currentScale = 1.5;
+        
+        // Función para renderizar una página
+        function renderPage(pageNumber) {
+            if (!currentPDF) return;
+            
+            currentPDF.getPage(pageNumber).then(function(page) {
+                const viewport = page.getViewport({scale: currentScale});
+                const canvas = document.getElementById('pdfCanvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                });
+                
+                // Actualizar información de página
+                document.getElementById('pageInfo').textContent = `${pageNumber} / ${totalPages}`;
+                currentPageNumber = pageNumber;
+                
+                // Actualizar estado de botones
+                document.getElementById('btnPrevPage').disabled = pageNumber <= 1;
+                document.getElementById('btnNextPage').disabled = pageNumber >= totalPages;
+            });
+        }
+        
+        // Función para ir a página anterior
+        function previousPage() {
+            if (currentPageNumber > 1) {
+                renderPage(currentPageNumber - 1);
+            }
+        }
+        
+        // Función para ir a página siguiente
+        function nextPage() {
+            if (currentPageNumber < totalPages) {
+                renderPage(currentPageNumber + 1);
+            }
+        }
+        
+        // Función para abrir el visor de PDF en modal
+        function abrirVisorPDF(url) {
+            const btnDescargar = document.getElementById('btnDescargarPDF');
+            const pdfLoading = document.getElementById('pdfLoading');
+            const pdfContainer = document.getElementById('pdfContainer');
+            
+            // Mostrar loading
+            pdfLoading.style.display = 'block';
+            pdfContainer.style.display = 'none';
+            
+            // Establecer la URL de descarga
+            btnDescargar.href = url;
+            
+            // Cargar el PDF con PDF.js
+            pdfjsLib.getDocument(url).promise.then(function(pdf) {
+                currentPDF = pdf;
+                totalPages = pdf.numPages;
+                currentPageNumber = 1;
+                
+                // Ocultar loading y mostrar contenedor
+                pdfLoading.style.display = 'none';
+                pdfContainer.style.display = 'flex';
+                
+                // Renderizar primera página
+                renderPage(1);
+            }).catch(function(error) {
+                console.error('Error al cargar PDF:', error);
+                pdfLoading.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> No se pudo cargar el PDF. <a href="' + url + '" class="alert-link" download>Descargar archivo</a></div>';
+            });
+            
+            // Abrir el modal
+            const modal = new bootstrap.Modal(document.getElementById('modalVisorPDF'));
+            modal.show();
+        }
+        
         document.addEventListener('DOMContentLoaded', function () {
             const toastEl = document.getElementById('successToast');
             if (toastEl) {
