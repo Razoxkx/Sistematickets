@@ -10,6 +10,8 @@ if (!isset($_SESSION["user_id"])) {
 
 // Obtener el nombre_usuario del contacto desde la URL
 $contacto_username = $_GET["username"] ?? "";
+$correo = $_GET["email"] ?? "";
+$telefono = $_GET["numero_telefono"] ?? "";
 $seccion = $_GET["seccion"] ?? "tickets_hasheado";
 $busqueda = $_GET["buscar"] ?? "";
 $pagina = max(1, (int)($_GET["pagina"] ?? 1));
@@ -149,7 +151,7 @@ try {
     <title>Perfil Contacto - <?php echo htmlspecialchars($contacto_username ?? ""); ?></title>
     <style>
         h1, h2, h3 {
-            color: #8b9dff;
+            color: white;
             font-weight: 700;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -362,7 +364,7 @@ try {
                 <div class="row">
                     <div class="col-md-6">
                         <div class="contact-info-item">
-                            <strong>📧 Correo:</strong> <?php echo htmlspecialchars($contacto["correo"] ?? "No disponible"); ?>
+                            <strong>📧 Correo:</strong> <?php echo htmlspecialchars($contacto["email"] ?? "No disponible"); ?>
                         </div>
                         <div class="contact-info-item">
                             <strong>📱 Teléfono:</strong> <?php echo htmlspecialchars($contacto["numero_telefono"] ?? "No disponible"); ?>

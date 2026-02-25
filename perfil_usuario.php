@@ -151,7 +151,7 @@ $total_paginas = ceil($total_items / $items_por_pagina);
     <title>Perfil - <?php echo htmlspecialchars($usuario_busca); ?></title>
     <style>
         h1, h2, h3 {
-            color: #8b9dff;
+            color: white;
             font-weight: 700;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }

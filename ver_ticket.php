@@ -64,6 +64,16 @@ try {
         $stmt = $conexion->prepare("UPDATE tickets SET estado = ?, fecha_ultima_modificacion = NOW() WHERE id = ?");
         $stmt->execute(["en conocimiento", $ticket["id"]]);
         $ticket["estado"] = "en conocimiento";
+        
+        // Registrar en historial
+        $stmt_historial = $conexion->prepare("INSERT INTO historial_estados_tickets (ticket_id, estado_anterior, estado_nuevo, usuario_id) VALUES (?, ?, ?, ?)");
+        $stmt_historial->execute([$ticket["id"], "sin abrir", "en conocimiento", $_SESSION["user_id"]]);
+        
+        // Crear comentario automático de trazabilidad
+        $usuario_abre = $_SESSION["username"] ?? "Sistema";
+        $mensaje_apertura = "📋 Ticket abierto por " . htmlspecialchars($usuario_abre) . ". El soporte TI ha tomado conocimiento del caso.";
+        $stmt_comment = $conexion->prepare("INSERT INTO comentarios_tickets (ticket_id, usuario_id, comentario, tipo_comentario) VALUES (?, ?, ?, ?)");
+        $stmt_comment->execute([$ticket["id"], $_SESSION["user_id"], $mensaje_apertura, 'apertura']);
     }
     
     // Obtener comentarios con información de usuario que modificó
@@ -870,6 +880,27 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             border-left-color: #b197fc;
         }
         
+        .comentario.comentario-apertura {
+            border-left-color: #20c997;
+            background: #f0fdf9;
+            font-weight: 500;
+        }
+        
+        [data-bs-theme="dark"] .comentario.comentario-apertura {
+            background: rgba(32, 201, 151, 0.15);
+            border-left-color: #5dd09f;
+        }
+        
+        .comentario.comentario-cambio_estado {
+            border-left-color: #ffc107;
+            background: #fffaf0;
+        }
+        
+        [data-bs-theme="dark"] .comentario.comentario-cambio_estado {
+            background: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffd93d;
+        }
+        
         [data-bs-theme="dark"] .form-control,
         [data-bs-theme="dark"] .form-select {
             background-color: #2a2a2a;
@@ -1117,7 +1148,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                         <p class="text-muted"><i class="bi bi-info-circle"></i> No hay comentarios aún</p>
                     <?php else: ?>
                         <?php foreach ($comentarios as $com): ?>
-                            <div class="comentario <?php echo ($com['tipo_comentario'] === 'cierre') ? 'comentario-cierre' : (($com['tipo_comentario'] === 'asignacion') ? 'comentario-asignacion' : (($com['tipo_comentario'] === 'edicion') ? 'comentario-edicion' : (($com['tipo_comentario'] === 'mencion') ? 'comentario-mencion' : ''))); ?>" id="comentario-<?php echo $com['id']; ?>">
+                            <div class="comentario <?php echo ($com['tipo_comentario'] === 'cierre') ? 'comentario-cierre' : (($com['tipo_comentario'] === 'asignacion') ? 'comentario-asignacion' : (($com['tipo_comentario'] === 'edicion') ? 'comentario-edicion' : (($com['tipo_comentario'] === 'apertura') ? 'comentario-apertura' : (($com['tipo_comentario'] === 'cambio_estado') ? 'comentario-cambio_estado' : (($com['tipo_comentario'] === 'mencion') ? 'comentario-mencion' : ''))))); ?>" id="comentario-<?php echo $com['id']; ?>">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <div class="comentario-autor"><strong><?php echo htmlspecialchars($com["username"]); ?></strong></div>
@@ -1520,7 +1551,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             
             console.log('Agregando comentario al DOM:', com);
             
-            const tipoClase = com.tipo_comentario === 'cierre' ? 'comentario-cierre' : (com.tipo_comentario === 'asignacion' ? 'comentario-asignacion' : (com.tipo_comentario === 'edicion' ? 'comentario-edicion' : (com.tipo_comentario === 'mencion' ? 'comentario-mencion' : '')));
+            const tipoClase = com.tipo_comentario === 'cierre' ? 'comentario-cierre' : (com.tipo_comentario === 'asignacion' ? 'comentario-asignacion' : (com.tipo_comentario === 'edicion' ? 'comentario-edicion' : (com.tipo_comentario === 'apertura' ? 'comentario-apertura' : (com.tipo_comentario === 'cambio_estado' ? 'comentario-cambio_estado' : (com.tipo_comentario === 'mencion' ? 'comentario-mencion' : '')))));
             
             // Procesar menciones: tickets (#DCDXXXXXX), activos (#AKXXXXXXX), procedimientos (#DCD.TXXXXXXX) y usuarios (#usuario)
             let comentarioConMenciones = com.comentario
