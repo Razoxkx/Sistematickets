@@ -272,6 +272,31 @@ try {
                 ?>
             </div>
             
+            <!-- PDF Adjunto -->
+            <?php if (!empty($procedimiento["archivo_pdf"])): ?>
+            <div class="card mb-4 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-file-pdf"></i> Documento Adjunto</h5>
+                    <p class="mb-2">Este procedimiento tiene un archivo PDF adjunto:</p>
+                    <div class="d-flex gap-2 align-items-center">
+                        <i class="bi bi-file-pdf" style="font-size: 24px; color: #dc3545;"></i>
+                        <div style="flex: 1;">
+                            <p class="mb-0 fw-bold text-truncate"><?php echo htmlspecialchars($procedimiento["archivo_pdf"]); ?></p>
+                            <small class="text-muted">PDF Document</small>
+                        </div>
+                        <a href="descargar_pdf_procedimiento.php?id=<?php echo htmlspecialchars($procedimiento_id); ?>" 
+                           class="btn btn-sm btn-primary" download>
+                            <i class="bi bi-download"></i> Descargar
+                        </a>
+                        <a href="uploads/procedimientos/<?php echo urlencode($procedimiento["archivo_pdf"]); ?>" 
+                           class="btn btn-sm btn-secondary" target="_blank">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+            
             <!-- Menciones -->
             <h3 class="mb-3"><i class="bi bi-link-45deg"></i> Menciones en Tickets (<?php echo count($menciones); ?>)</h3>
             <div class="card mb-4">

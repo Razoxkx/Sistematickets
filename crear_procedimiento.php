@@ -30,15 +30,55 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_procedimiento"])
         $error = "Tipo de procedimiento inválido";
     } else {
         try {
+            $archivo_pdf = null;
+            
+            // Procesar archivo PDF si se subió
+            if (isset($_FILES["archivo_pdf"]) && $_FILES["archivo_pdf"]["error"] != UPLOAD_ERR_NO_FILE) {
+                if ($_FILES["archivo_pdf"]["error"] !== UPLOAD_ERR_OK) {
+                    throw new Exception("Error al subir el archivo");
+                }
+                
+                // Validar que sea un PDF
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $tipo_archivo = finfo_file($finfo, $_FILES["archivo_pdf"]["tmp_name"]);
+                finfo_close($finfo);
+                
+                if ($tipo_archivo !== 'application/pdf') {
+                    throw new Exception("Solo se permiten archivos PDF");
+                }
+                
+                // Validar tamaño máximo (10 MB)
+                if ($_FILES["archivo_pdf"]["size"] > 10 * 1024 * 1024) {
+                    throw new Exception("El archivo no debe exceder 10 MB");
+                }
+                
+                // Crear directorio si no existe
+                $uploads_dir = 'uploads/procedimientos';
+                if (!is_dir($uploads_dir)) {
+                    mkdir($uploads_dir, 0755, true);
+                }
+                
+                // Generar nombre único para el archivo
+                $nombre_unico = uniqid("proc_") . "_" . basename($_FILES["archivo_pdf"]["name"]);
+                $ruta_destino = $uploads_dir . "/" . $nombre_unico;
+                
+                // Mover archivo
+                if (!move_uploaded_file($_FILES["archivo_pdf"]["tmp_name"], $ruta_destino)) {
+                    throw new Exception("Error al guardar el archivo");
+                }
+                
+                $archivo_pdf = $nombre_unico;
+            }
+            
             // Generar ID temporal
             $id_temp = "DCD.T" . uniqid();
             
             // Insertar procedimiento
             $stmt = $conexion->prepare("
-                INSERT INTO procedimientos (id_procedimiento, titulo, tipo_procedimiento, cuerpo, usuario_creador)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO procedimientos (id_procedimiento, titulo, tipo_procedimiento, cuerpo, usuario_creador, archivo_pdf)
+                VALUES (?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$id_temp, $titulo, $tipo, $cuerpo, $_SESSION["user_id"]]);
+            $stmt->execute([$id_temp, $titulo, $tipo, $cuerpo, $_SESSION["user_id"], $archivo_pdf]);
             
             // Obtener el ID generado
             $procedimiento_id = $conexion->lastInsertId();
@@ -55,6 +95,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_procedimiento"])
             exit();
         } catch (PDOException $e) {
             $error = "Error al crear procedimiento: " . $e->getMessage();
+        } catch (Exception $e) {
+            $error = $e->getMessage();
         }
     }
 }
@@ -150,7 +192,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_procedimiento"])
                 
                 <div class="card">
                     <div class="card-body">
-                        <form method="POST">
+                        <form method="POST" enctype="multipart/form-data">
                             <div class="mb-3">
                                 <label for="titulo" class="form-label">
                                     <i class="bi bi-pencil"></i> Título del Procedimiento <span class="text-danger">*</span>
@@ -199,6 +241,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_procedimiento"])
                                           placeholder="Describe el procedimiento de forma detallada. Puedes incluir pasos, notas, advertencias, etc."
                                           required><?php echo htmlspecialchars($_POST["cuerpo"] ?? ""); ?></textarea>
                                 <small class="text-muted">Máximo 65535 caracteres</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="archivo_pdf" class="form-label">
+                                    <i class="bi bi-file-pdf"></i> Archivo PDF Adjunto (Opcional)
+                                </label>
+                                <input type="file" id="archivo_pdf" name="archivo_pdf" class="form-control" 
+                                       accept=".pdf" />
+                                <small class="text-muted">Solo archivos PDF, máximo 10 MB</small>
                             </div>
                             
                             <div class="row">

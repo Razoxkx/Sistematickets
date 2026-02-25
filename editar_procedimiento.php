@@ -45,42 +45,94 @@ try {
         if (empty($titulo) || empty($tipo) || empty($cuerpo)) {
             $error = "Todos los campos son obligatorios";
         } else {
-            // Registrar cambios en historial
-            if ($procedimiento["titulo"] !== $titulo) {
-                $stmt_hist = $conexion->prepare("
-                    INSERT INTO historial_procedimientos (procedimiento_id, campo_modificado, valor_anterior, valor_nuevo, usuario_id)
-                    VALUES (?, 'titulo', ?, ?, ?)
+            try {
+                $archivo_pdf = $procedimiento["archivo_pdf"];
+                
+                // Procesar archivo PDF si se subió uno nuevo
+                if (isset($_FILES["archivo_pdf"]) && $_FILES["archivo_pdf"]["error"] != UPLOAD_ERR_NO_FILE) {
+                    if ($_FILES["archivo_pdf"]["error"] !== UPLOAD_ERR_OK) {
+                        throw new Exception("Error al subir el archivo");
+                    }
+                    
+                    // Validar que sea un PDF
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $tipo_archivo = finfo_file($finfo, $_FILES["archivo_pdf"]["tmp_name"]);
+                    finfo_close($finfo);
+                    
+                    if ($tipo_archivo !== 'application/pdf') {
+                        throw new Exception("Solo se permiten archivos PDF");
+                    }
+                    
+                    // Validar tamaño máximo (10 MB)
+                    if ($_FILES["archivo_pdf"]["size"] > 10 * 1024 * 1024) {
+                        throw new Exception("El archivo no debe exceder 10 MB");
+                    }
+                    
+                    // Eliminar archivo anterior si existe
+                    if (!empty($procedimiento["archivo_pdf"])) {
+                        $archivo_anterior = 'uploads/procedimientos/' . $procedimiento["archivo_pdf"];
+                        if (file_exists($archivo_anterior)) {
+                            @unlink($archivo_anterior);
+                        }
+                    }
+                    
+                    // Crear directorio si no existe
+                    $uploads_dir = 'uploads/procedimientos';
+                    if (!is_dir($uploads_dir)) {
+                        mkdir($uploads_dir, 0755, true);
+                    }
+                    
+                    // Generar nombre único para el archivo
+                    $nombre_unico = uniqid("proc_") . "_" . basename($_FILES["archivo_pdf"]["name"]);
+                    $ruta_destino = $uploads_dir . "/" . $nombre_unico;
+                    
+                    // Mover archivo
+                    if (!move_uploaded_file($_FILES["archivo_pdf"]["tmp_name"], $ruta_destino)) {
+                        throw new Exception("Error al guardar el archivo");
+                    }
+                    
+                    $archivo_pdf = $nombre_unico;
+                }
+                
+                // Registrar cambios en historial
+                if ($procedimiento["titulo"] !== $titulo) {
+                    $stmt_hist = $conexion->prepare("
+                        INSERT INTO historial_procedimientos (procedimiento_id, campo_modificado, valor_anterior, valor_nuevo, usuario_id)
+                        VALUES (?, 'titulo', ?, ?, ?)
+                    ");
+                    $stmt_hist->execute([$procedimiento_id, $procedimiento["titulo"], $titulo, $_SESSION["user_id"]]);
+                }
+                
+                if ($procedimiento["tipo_procedimiento"] !== $tipo) {
+                    $stmt_hist = $conexion->prepare("
+                        INSERT INTO historial_procedimientos (procedimiento_id, campo_modificado, valor_anterior, valor_nuevo, usuario_id)
+                        VALUES (?, 'tipo_procedimiento', ?, ?, ?)
+                    ");
+                    $stmt_hist->execute([$procedimiento_id, $procedimiento["tipo_procedimiento"], $tipo, $_SESSION["user_id"]]);
+                }
+                
+                if ($procedimiento["cuerpo"] !== $cuerpo) {
+                    $stmt_hist = $conexion->prepare("
+                        INSERT INTO historial_procedimientos (procedimiento_id, campo_modificado, valor_anterior, valor_nuevo, usuario_id)
+                        VALUES (?, 'cuerpo', ?, ?, ?)
+                    ");
+                    $stmt_hist->execute([$procedimiento_id, substr($procedimiento["cuerpo"], 0, 100), substr($cuerpo, 0, 100), $_SESSION["user_id"]]);
+                }
+                
+                // Actualizar procedimiento
+                $stmt = $conexion->prepare("
+                    UPDATE procedimientos 
+                    SET titulo = ?, tipo_procedimiento = ?, cuerpo = ?, archivo_pdf = ?, fecha_ultima_modificacion = NOW()
+                    WHERE id = ?
                 ");
-                $stmt_hist->execute([$procedimiento_id, $procedimiento["titulo"], $titulo, $_SESSION["user_id"]]);
+                $stmt->execute([$titulo, $tipo, $cuerpo, $archivo_pdf, $procedimiento_id]);
+                
+                // Redirigir al procedimiento actualizado con mensaje
+                header("Location: ver_procedimiento.php?id=" . $procedimiento_id . "&success=cambios");
+                exit();
+            } catch (Exception $e) {
+                $error = $e->getMessage();
             }
-            
-            if ($procedimiento["tipo_procedimiento"] !== $tipo) {
-                $stmt_hist = $conexion->prepare("
-                    INSERT INTO historial_procedimientos (procedimiento_id, campo_modificado, valor_anterior, valor_nuevo, usuario_id)
-                    VALUES (?, 'tipo_procedimiento', ?, ?, ?)
-                ");
-                $stmt_hist->execute([$procedimiento_id, $procedimiento["tipo_procedimiento"], $tipo, $_SESSION["user_id"]]);
-            }
-            
-            if ($procedimiento["cuerpo"] !== $cuerpo) {
-                $stmt_hist = $conexion->prepare("
-                    INSERT INTO historial_procedimientos (procedimiento_id, campo_modificado, valor_anterior, valor_nuevo, usuario_id)
-                    VALUES (?, 'cuerpo', ?, ?, ?)
-                ");
-                $stmt_hist->execute([$procedimiento_id, substr($procedimiento["cuerpo"], 0, 100), substr($cuerpo, 0, 100), $_SESSION["user_id"]]);
-            }
-            
-            // Actualizar procedimiento
-            $stmt = $conexion->prepare("
-                UPDATE procedimientos 
-                SET titulo = ?, tipo_procedimiento = ?, cuerpo = ?, fecha_ultima_modificacion = NOW()
-                WHERE id = ?
-            ");
-            $stmt->execute([$titulo, $tipo, $cuerpo, $procedimiento_id]);
-            
-            // Redirigir al procedimiento actualizado con mensaje
-            header("Location: ver_procedimiento.php?id=" . $procedimiento_id . "&success=cambios");
-            exit();
         }
     }
 } catch (PDOException $e) {
@@ -137,7 +189,7 @@ try {
                     
                     <div class="card">
                         <div class="card-body">
-                            <form method="POST">
+                            <form method="POST" enctype="multipart/form-data">
                                 <div class="mb-3">
                                     <label for="titulo" class="form-label">
                                         <i class="bi bi-pencil"></i> Título <span class="text-danger">*</span>
@@ -161,6 +213,20 @@ try {
                                         <i class="bi bi-file-text"></i> Contenido <span class="text-danger">*</span>
                                     </label>
                                     <textarea id="cuerpo" name="cuerpo" class="form-control" rows="12" required><?php echo htmlspecialchars($procedimiento["cuerpo"]); ?></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="archivo_pdf" class="form-label">
+                                        <i class="bi bi-file-pdf"></i> Archivo PDF (Opcional)
+                                    </label>
+                                    <?php if (!empty($procedimiento["archivo_pdf"])): ?>
+                                        <div class="alert alert-info mb-2">
+                                            <i class="bi bi-info-circle"></i> PDF actual: <strong><?php echo htmlspecialchars($procedimiento["archivo_pdf"]); ?></strong>
+                                        </div>
+                                    <?php endif; ?>
+                                    <input type="file" id="archivo_pdf" name="archivo_pdf" class="form-control" 
+                                           accept=".pdf" />
+                                    <small class="text-muted">Solo archivos PDF, máximo 10 MB. Si deseas cambiar el PDF, selecciona uno nuevo.</small>
                                 </div>
                                 
                                 <div class="d-flex gap-2">
