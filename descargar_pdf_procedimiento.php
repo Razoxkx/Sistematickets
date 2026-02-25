@@ -4,67 +4,57 @@ require_once 'includes/config.php';
 
 // Verificar si el usuario está logueado
 if (!isset($_SESSION["user_id"])) {
-    header("Location: index.php");
-    exit();
+    http_response_code(403);
+    exit("Acceso denegado");
 }
 
-// Verificar permisos
-$permisos = ['tisupport', 'admin', 'viewer'];
-if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
-    header("Location: tickets.php");
-    exit();
-}
+$procedimiento_id = $_GET["id"] ?? null;
 
-$procedimiento_id = $_GET["id"] ?? "";
-
-if (empty($procedimiento_id)) {
-    http_response_code(404);
-    die("Procedimiento no encontrado");
+if (!$procedimiento_id || !is_numeric($procedimiento_id)) {
+    http_response_code(400);
+    exit("ID de procedimiento inválido");
 }
 
 try {
-    // Obtener información del PDF del procedimiento
-    $stmt = $conexion->prepare("
-        SELECT id, titulo, archivo_pdf
-        FROM procedimientos
-        WHERE id = ?
-    ");
+    $stmt = $conexion->prepare("SELECT archivo_pdf, titulo FROM procedimientos WHERE id = ?");
     $stmt->execute([$procedimiento_id]);
     $procedimiento = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$procedimiento || empty($procedimiento["archivo_pdf"])) {
         http_response_code(404);
-        die("No hay archivo PDF asociado con este procedimiento");
+        exit("Archivo no encontrado");
     }
-    
-    $archivo_path = 'uploads/procedimientos/' . $procedimiento["archivo_pdf"];
-    
+
+    $archivo_ruta = __DIR__ . "/uploads/procedimientos/" . $procedimiento["archivo_pdf"];
+
     // Validar que el archivo existe y está dentro del directorio permitido
-    if (!file_exists($archivo_path) || !is_file($archivo_path)) {
+    if (!file_exists($archivo_ruta) || strpos(realpath($archivo_ruta), realpath(__DIR__ . "/uploads/procedimientos/")) !== 0) {
         http_response_code(404);
-        die("El archivo no existe");
+        exit("Archivo no encontrado");
     }
+
+    // Obtener nombre limpio del archivo (sin la parte del uniqid)
+    $filename = preg_replace('/^proc_[a-f0-9]+_/', '', $procedimiento["archivo_pdf"]);
     
-    // Validar que la ruta está dentro del directorio de procedimientos
-    $real_path = realpath($archivo_path);
-    $base_path = realpath('uploads/procedimientos');
-    
-    if (strpos($real_path, $base_path) !== 0) {
-        http_response_code(403);
-        die("Acceso denegado");
+    // Determinar si es descarga o visualización
+    $ver = $_GET["ver"] ?? 0;
+
+    if ($ver == 1) {
+        // Abrir en navegador
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename*=UTF-8\'\'' . rawurlencode($filename));
+    } else {
+        // Descargar
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename*=UTF-8\'\'' . rawurlencode($filename));
     }
-    
-    // Descargar el archivo
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="' . basename($procedimiento["archivo_pdf"]) . '"');
-    header('Content-Length: ' . filesize($archivo_path));
+
+    header('Content-Length: ' . filesize($archivo_ruta));
     header('Cache-Control: no-cache, no-store, must-revalidate');
-    
-    readfile($archivo_path);
-    exit();
-    
-} catch (Exception $e) {
+    readfile($archivo_ruta);
+
+} catch (PDOException $e) {
     http_response_code(500);
-    die("Error al descargar el archivo: " . $e->getMessage());
+    exit("Error en la base de datos");
 }
 ?>

@@ -59,15 +59,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_procedimiento"])
                 }
                 
                 // Generar nombre único para el archivo
-                $nombre_unico = uniqid("proc_") . "_" . basename($_FILES["archivo_pdf"]["name"]);
-                $ruta_destino = $uploads_dir . "/" . $nombre_unico;
+                $nombre_archivo = pathinfo($_FILES["archivo_pdf"]["name"], PATHINFO_FILENAME);
+                $extension = pathinfo($_FILES["archivo_pdf"]["name"], PATHINFO_EXTENSION);
+
+                // Sanitizar nombre: reemplazar espacios y caracteres especiales
+                $nombre_archivo = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nombre_archivo);
+                $nombre_archivo = preg_replace('/_+/', '_', $nombre_archivo); // Evitar múltiples guiones bajos
+
+                $nombre_archivo_unico = $nombre_archivo . '_' . time() . '.' . $extension;
+
+                $ruta_destino = $uploads_dir . "/" . $nombre_archivo_unico;
                 
                 // Mover archivo
                 if (!move_uploaded_file($_FILES["archivo_pdf"]["tmp_name"], $ruta_destino)) {
                     throw new Exception("Error al guardar el archivo");
                 }
                 
-                $archivo_pdf = $nombre_unico;
+                $archivo_pdf = $nombre_archivo_unico;
             }
             
             // Generar ID temporal
@@ -162,6 +170,73 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_procedimiento"])
         [data-bs-theme="dark"] .text-muted {
             color: #999 !important;
         }
+        
+        .pdf-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .pdf-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .pdf-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 40px 20px;
+            border: 2px dashed #dc3545;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.02) 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .pdf-input-label:hover {
+            border-color: #c82333;
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+        }
+        
+        .pdf-input-label i {
+            font-size: 32px;
+            color: #dc3545;
+        }
+        
+        .pdf-input-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .pdf-input-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        [data-bs-theme="dark"] .pdf-input-title {
+            color: #e0e0e0;
+        }
+        
+        .pdf-input-subtitle {
+            font-size: 13px;
+            color: #6c757d;
+        }
+        
+        [data-bs-theme="dark"] .pdf-input-subtitle {
+            color: #a0a0a0;
+        }
+        
+        [data-bs-theme="dark"] .pdf-input-label {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.08) 0%, rgba(220, 53, 69, 0.03) 100%);
+        }
     </style>
     <script>
         (function() {
@@ -244,12 +319,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["crear_procedimiento"])
                             </div>
                             
                             <div class="mb-3">
-                                <label for="archivo_pdf" class="form-label">
-                                    <i class="bi bi-file-pdf"></i> Archivo PDF Adjunto (Opcional)
+                                <label for="archivo_pdf" class="form-label" style="display: block; margin-bottom: 12px;">
+                                    <i class="bi bi-paperclip"></i> Archivo PDF (Opcional)
                                 </label>
-                                <input type="file" id="archivo_pdf" name="archivo_pdf" class="form-control" 
-                                       accept=".pdf" />
-                                <small class="text-muted">Solo archivos PDF, máximo 10 MB</small>
+                                <div class="pdf-input-wrapper">
+                                    <input type="file" id="archivo_pdf" name="archivo_pdf" accept=".pdf" />
+                                    <label for="archivo_pdf" class="pdf-input-label">
+                                        <div class="pdf-input-text">
+                                            <i class="bi bi-file-pdf"></i>
+                                            <div class="pdf-input-title">Selecciona un archivo PDF</div>
+                                            <div class="pdf-input-subtitle">o arrastra aquí • Máximo 10 MB</div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <small class="d-block mt-2 text-muted"><i class="bi bi-info-circle"></i> El archivo es completamente opcional</small>
                             </div>
                             
                             <div class="row">

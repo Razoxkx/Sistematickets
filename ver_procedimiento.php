@@ -150,6 +150,121 @@ try {
             background: #252a32;
         }
         
+        .pdf-adjunto-card {
+            border-left: 5px solid #dc3545;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        [data-bs-theme="dark"] .pdf-adjunto-card {
+            background: #252a32;
+            border-left-color: #dc3545;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .pdf-icon-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border-radius: 8px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
+        }
+        
+        .pdf-icon-container i {
+            font-size: 32px;
+            color: white;
+        }
+        
+        .pdf-info {
+            flex: 1;
+        }
+        
+        .pdf-nombre {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            word-break: break-word;
+            font-size: 16px;
+        }
+        
+        [data-bs-theme="dark"] .pdf-nombre {
+            color: #e0e0e0;
+        }
+        
+        .pdf-meta {
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 12px;
+        }
+        
+        [data-bs-theme="dark"] .pdf-meta {
+            color: #a0a0a0;
+        }
+        
+        .pdf-acciones {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .pdf-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        
+        .pdf-btn-descargar {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .pdf-btn-descargar:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+        
+        .pdf-btn-ver {
+            background-color: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .pdf-btn-ver:hover {
+            background-color: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        [data-bs-theme="dark"] .pdf-btn-ver {
+            color: #8b9dff;
+            border-color: #8b9dff;
+        }
+        
+        [data-bs-theme="dark"] .pdf-btn-ver:hover {
+            background-color: #8b9dff;
+            color: #1a1d23;
+        }
+        
         .timeline-item {
             padding: 20px;
             border-left: 3px solid #667eea;
@@ -274,24 +389,30 @@ try {
             
             <!-- PDF Adjunto -->
             <?php if (!empty($procedimiento["archivo_pdf"])): ?>
-            <div class="card mb-4 border-primary">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-file-pdf"></i> Documento Adjunto</h5>
-                    <p class="mb-2">Este procedimiento tiene un archivo PDF adjunto:</p>
-                    <div class="d-flex gap-2 align-items-center">
-                        <i class="bi bi-file-pdf" style="font-size: 24px; color: #dc3545;"></i>
-                        <div style="flex: 1;">
-                            <p class="mb-0 fw-bold text-truncate"><?php echo htmlspecialchars($procedimiento["archivo_pdf"]); ?></p>
-                            <small class="text-muted">PDF Document</small>
-                        </div>
+            <div class="pdf-adjunto-card">
+                <div class="pdf-icon-container">
+                    <i class="bi bi-file-pdf"></i>
+                </div>
+                <div class="pdf-info">
+                    <div class="pdf-nombre">
+                        <?php 
+                        $filename = preg_replace('/^proc_[a-f0-9]+_/', '', $procedimiento["archivo_pdf"]);
+                        echo htmlspecialchars($filename);
+                        ?>
+                    </div>
+                    <div class="pdf-meta">
+                        <i class="bi bi-paperclip"></i> Documento PDF adjunto
+                    </div>
+                    <div class="pdf-acciones">
                         <a href="descargar_pdf_procedimiento.php?id=<?php echo htmlspecialchars($procedimiento_id); ?>" 
-                           class="btn btn-sm btn-primary" download>
+                           class="pdf-btn pdf-btn-descargar" 
+                           download>
                             <i class="bi bi-download"></i> Descargar
                         </a>
-                        <a href="uploads/procedimientos/<?php echo urlencode($procedimiento["archivo_pdf"]); ?>" 
-                           class="btn btn-sm btn-secondary" target="_blank">
-                            <i class="bi bi-eye"></i> Ver
-                        </a>
+                        <button class="pdf-btn pdf-btn-ver" 
+                                onclick="window.open('descargar_pdf_procedimiento.php?id=<?php echo htmlspecialchars($procedimiento_id); ?>&ver=1', '_blank')">
+                            <i class="bi bi-eye"></i> Ver en navegador
+                        </button>
                     </div>
                 </div>
             </div>

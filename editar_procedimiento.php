@@ -159,6 +159,97 @@ try {
         h2 {
             font-size: 1.75rem;
         }
+        
+        .pdf-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .pdf-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .pdf-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 35px 20px;
+            border: 2px dashed #dc3545;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.02) 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .pdf-input-label:hover {
+            border-color: #c82333;
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+        }
+        
+        .pdf-input-label i {
+            font-size: 28px;
+            color: #dc3545;
+        }
+        
+        .pdf-input-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .pdf-input-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        [data-bs-theme="dark"] .pdf-input-title {
+            color: #e0e0e0;
+        }
+        
+        .pdf-input-subtitle {
+            font-size: 13px;
+            color: #6c757d;
+        }
+        
+        [data-bs-theme="dark"] .pdf-input-subtitle {
+            color: #a0a0a0;
+        }
+        
+        [data-bs-theme="dark"] .pdf-input-label {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.08) 0%, rgba(220, 53, 69, 0.03) 100%);
+        }
+        
+        .pdf-actual-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, #fff3cd 0%, #fffbea 100%);
+            border-left: 4px solid #ffc107;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        [data-bs-theme="dark"] .pdf-actual-info {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.05) 100%);
+            border-left-color: #ffc107;
+        }
+        
+        .pdf-actual-info strong {
+            color: #856404;
+        }
+        
+        [data-bs-theme="dark"] .pdf-actual-info strong {
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
@@ -216,17 +307,32 @@ try {
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="archivo_pdf" class="form-label">
-                                        <i class="bi bi-file-pdf"></i> Archivo PDF (Opcional)
+                                    <label for="archivo_pdf" class="form-label" style="display: block; margin-bottom: 12px;">
+                                        <i class="bi bi-paperclip"></i> Archivo PDF (Opcional)
                                     </label>
                                     <?php if (!empty($procedimiento["archivo_pdf"])): ?>
-                                        <div class="alert alert-info mb-2">
-                                            <i class="bi bi-info-circle"></i> PDF actual: <strong><?php echo htmlspecialchars($procedimiento["archivo_pdf"]); ?></strong>
+                                        <div class="pdf-actual-info">
+                                            <i class="bi bi-check-circle"></i>
+                                            <div>
+                                                <strong>PDF actual:</strong> <?php 
+                                                $filename = preg_replace('/^proc_[a-f0-9]+_/', '', $procedimiento["archivo_pdf"]);
+                                                echo htmlspecialchars($filename); 
+                                                ?>
+                                            </div>
                                         </div>
                                     <?php endif; ?>
-                                    <input type="file" id="archivo_pdf" name="archivo_pdf" class="form-control" 
-                                           accept=".pdf" />
-                                    <small class="text-muted">Solo archivos PDF, máximo 10 MB. Si deseas cambiar el PDF, selecciona uno nuevo.</small>
+                                    <div class="pdf-input-wrapper">
+                                        <input type="file" id="archivo_pdf" name="archivo_pdf" accept=".pdf" />
+                                        <label for="archivo_pdf" class="pdf-input-label">
+                                            <div class="pdf-input-text">
+                                                <i class="bi bi-file-pdf"></i>
+                                                <div class="pdf-input-title">
+                                                    <?php echo !empty($procedimiento["archivo_pdf"]) ? "Cambiar PDF" : "Añadir PDF"; ?>
+                                                </div>
+                                                <div class="pdf-input-subtitle">o arrastra aquí • Máximo 10 MB</div>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                                 
                                 <div class="d-flex gap-2">
