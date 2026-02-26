@@ -19,104 +19,148 @@ if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
 
 header('Content-Type: application/json');
 
-$periodo = $_GET['periodo'] ?? 'todo';
-$fecha_desde = $_GET['fecha_desde'] ?? null;
-$fecha_hasta = $_GET['fecha_hasta'] ?? null;
+$accion = $_GET['accion'] ?? 'todos';
+$estado = $_GET['estado'] ?? '';
+$solicitante = $_GET['solicitante'] ?? '';
+$responsable = $_GET['responsable'] ?? '';
+$fecha_desde = $_GET['fecha_desde'] ?? '';
+$fecha_hasta = $_GET['fecha_hasta'] ?? '';
 
-// Función para obtener estadísticas de estados
-function obtenerEstadisticasEstados($conexion, $periodo = 'todo', $fecha_desde = null, $fecha_hasta = null) {
-    $whereClause = "";
+/**
+ * Construir WHERE clause dinámicamente según filtros
+ */
+function construirWhereConFiltros($estado, $solicitante, $responsable_username, $fecha_desde, $fecha_hasta) {
+    $where = "WHERE t.ticket_padre_id IS NULL";
+    $params = [];
     
-    if ($periodo === 'personalizado' && $fecha_desde && $fecha_hasta) {
-        $whereClause = "WHERE DATE(fecha) >= ? AND DATE(fecha) <= ?";
-    } elseif ($periodo === 'semana') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-    } elseif ($periodo === 'mes') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-    } elseif ($periodo === 'año') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 365 DAY)";
+    if (!empty($estado)) {
+        $where .= " AND t.estado = ?";
+        $params[] = $estado;
     }
     
-    try {
-        if ($periodo === 'personalizado' && $fecha_desde && $fecha_hasta) {
-            $stmt = $conexion->prepare("
-                SELECT estado, COUNT(*) as cantidad 
-                FROM tickets 
-                $whereClause
-                GROUP BY estado
-                ORDER BY cantidad DESC
-            ");
-            $stmt->execute([$fecha_desde, $fecha_hasta]);
-        } else {
-            $stmt = $conexion->query("
-                SELECT estado, COUNT(*) as cantidad 
-                FROM tickets 
-                $whereClause
-                GROUP BY estado
-                ORDER BY cantidad DESC
-            ");
-        }
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
-    }
-}
-
-// Función para obtener top 10 solicitantes
-function obtenerTop10Solicitantes($conexion, $periodo = 'todo', $fecha_desde = null, $fecha_hasta = null) {
-    $whereClause = "";
-    
-    if ($periodo === 'personalizado' && $fecha_desde && $fecha_hasta) {
-        $whereClause = "WHERE DATE(fecha) >= ? AND DATE(fecha) <= ?";
-    } elseif ($periodo === 'semana') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-    } elseif ($periodo === 'mes') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-    } elseif ($periodo === 'año') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 365 DAY)";
+    if (!empty($solicitante)) {
+        $where .= " AND t.nombre_solicitante = ?";
+        $params[] = $solicitante;
     }
     
-    try {
-        if ($periodo === 'personalizado' && $fecha_desde && $fecha_hasta) {
-            $stmt = $conexion->prepare("
-                SELECT nombre_solicitante, COUNT(*) as total_reportes 
-                FROM tickets 
-                $whereClause
-                GROUP BY nombre_solicitante 
-                ORDER BY total_reportes DESC 
-                LIMIT 10
-            ");
-            $stmt->execute([$fecha_desde, $fecha_hasta]);
-        } else {
-            $stmt = $conexion->query("
-                SELECT nombre_solicitante, COUNT(*) as total_reportes 
-                FROM tickets 
-                $whereClause
-                GROUP BY nombre_solicitante 
-                ORDER BY total_reportes DESC 
-                LIMIT 10
-            ");
-        }
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
+    if (!empty($responsable_username)) {
+        $where .= " AND u.username = ?";
+        $params[] = $responsable_username;
     }
+    
+    if (!empty($fecha_desde)) {
+        $where .= " AND DATE(t.fecha_creacion) >= ?";
+        $params[] = $fecha_desde;
+    }
+    
+    if (!empty($fecha_hasta)) {
+        $where .= " AND DATE(t.fecha_creacion) <= ?";
+        $params[] = $fecha_hasta;
+    }
+    
+    return [$where, $params];
 }
 
 try {
-    $datos_estados = obtenerEstadisticasEstados($conexion, $periodo, $fecha_desde, $fecha_hasta);
-    $datos_solicitantes = obtenerTop10Solicitantes($conexion, $periodo, $fecha_desde, $fecha_hasta);
     
-    echo json_encode([
-        'success' => true,
-        'estados' => $datos_estados,
-        'solicitantes' => $datos_solicitantes
-    ]);
-} catch (Exception $e) {
+    // Endpoint: Mes actual
+    if ($accion === 'mes_actual') {
+        $sql = "SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN t.es_cerrado = 1 THEN 1 ELSE 0 END) as cerrados,
+                    SUM(CASE WHEN t.es_cerrado = 0 AND t.estado != 'ticket cerrado' THEN 1 ELSE 0 END) as abiertos,
+                    SUM(CASE WHEN t.estado = 'en proceso' THEN 1 ELSE 0 END) as en_proceso
+                FROM tickets t
+                WHERE YEAR(t.fecha_creacion) = YEAR(NOW())
+                AND MONTH(t.fecha_creacion) = MONTH(NOW())
+                AND t.ticket_padre_id IS NULL";
+        
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $datos = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'total' => (int)$datos['total'],
+            'cerrados' => (int)$datos['cerrados'] ?? 0,
+            'abiertos' => (int)$datos['abiertos'] ?? 0,
+            'en_proceso' => (int)$datos['en_proceso'] ?? 0
+        ]);
+    }
+    
+    // Endpoint: Últimos 7 días
+    elseif ($accion === 'ultimos_7_dias') {
+        $sql = "SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN t.es_cerrado = 1 THEN 1 ELSE 0 END) as cerrados,
+                    SUM(CASE WHEN t.es_cerrado = 0 AND t.estado != 'ticket cerrado' THEN 1 ELSE 0 END) as abiertos,
+                    SUM(CASE WHEN t.estado = 'en proceso' THEN 1 ELSE 0 END) as en_proceso
+                FROM tickets t
+                WHERE t.fecha_creacion >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                AND t.ticket_padre_id IS NULL";
+        
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $datos = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'total' => (int)$datos['total'],
+            'cerrados' => (int)$datos['cerrados'] ?? 0,
+            'abiertos' => (int)$datos['abiertos'] ?? 0,
+            'en_proceso' => (int)$datos['en_proceso'] ?? 0
+        ]);
+    }
+    
+    // Endpoint: Filtros personalizados
+    elseif ($accion === 'filtros') {
+        list($where, $params) = construirWhereConFiltros($estado, $solicitante, $responsable, $fecha_desde, $fecha_hasta);
+        
+        // Obtener estados - siempre LEFT JOIN con users para compatibilidad
+        $sql = "SELECT t.estado, COUNT(*) as cantidad FROM tickets t LEFT JOIN users u ON t.responsable = u.id $where GROUP BY t.estado ORDER BY cantidad DESC";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute($params);
+        $estados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Obtener top 5 solicitantes
+        $sql = "SELECT t.nombre_solicitante, COUNT(*) as total FROM tickets t LEFT JOIN users u ON t.responsable = u.id $where GROUP BY t.nombre_solicitante ORDER BY total DESC LIMIT 5";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute($params);
+        $top5 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'estados' => $estados,
+            'top5' => $top5
+        ]);
+    }
+    
+    // Endpoint por defecto: Todos
+    else {
+        // Obtener todos los datos sin filtros
+        $sql = "SELECT t.estado, COUNT(*) as cantidad FROM tickets t 
+                WHERE t.ticket_padre_id IS NULL
+                GROUP BY t.estado ORDER BY cantidad DESC";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $estados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $sql = "SELECT t.nombre_solicitante, COUNT(*) as total FROM tickets t 
+                WHERE t.ticket_padre_id IS NULL
+                GROUP BY t.nombre_solicitante ORDER BY total DESC LIMIT 5";
+        $stmt = $conexion->prepare($sql);
+        $stmt->execute();
+        $top5 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'estados' => $estados,
+            'top5' => $top5
+        ]);
+    }
+    
+} catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
+    echo json_encode(['success' => false, 'error' => 'Error de base de datos: ' . $e->getMessage()]);
 }
 ?>

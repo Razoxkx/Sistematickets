@@ -7,7 +7,7 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-// Verificar si el usuario está logueado
+// Verificar sesión
 if (!isset($_SESSION["user_id"])) {
     header("Location: index.php");
     exit();
@@ -20,71 +20,95 @@ if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
     exit();
 }
 
-// Obtener lista de solicitantes únicos
+// ==================== OBTENER OPCIONES DE FILTRO ====================
+$solicitantes_lista = [];
+$responsables_lista = [];
+
 try {
-    $stmt = $conexion->query("SELECT DISTINCT nombre_solicitante FROM tickets ORDER BY nombre_solicitante");
-    $solicitantes = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    // Solicitantes únicos
+    $stmt = $conexion->query("SELECT DISTINCT nombre_solicitante FROM tickets WHERE nombre_solicitante IS NOT NULL AND nombre_solicitante != '' ORDER BY nombre_solicitante");
+    $solicitantes_lista = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (PDOException $e) {
-    $solicitantes = [];
+    $solicitantes_lista = [];
 }
 
-// Función para obtener estadísticas de estados
-function obtenerEstadisticasEstados($conexion, $periodo = 'todo') {
-    $whereClause = "";
-    
-    if ($periodo === 'semana') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-    } elseif ($periodo === 'mes') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-    } elseif ($periodo === 'año') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 365 DAY)";
-    }
-    
-    try {
-        $stmt = $conexion->query("
-            SELECT estado, COUNT(*) as cantidad 
-            FROM tickets 
-            $whereClause 
-            GROUP BY estado
-        ");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
-    }
+try {
+    // Responsables únicos (usernames desde users table, joined con tickets que tienen asignación)
+    $stmt = $conexion->query("
+        SELECT DISTINCT u.username 
+        FROM tickets t
+        LEFT JOIN users u ON t.responsable = u.id
+        WHERE t.responsable IS NOT NULL AND u.username IS NOT NULL
+        ORDER BY u.username
+    ");
+    $responsables_lista = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    $responsables_lista = [];
 }
 
-// Función para obtener top 10 solicitantes
-function obtenerTop10Solicitantes($conexion, $periodo = 'todo') {
-    $whereClause = "";
-    
-    if ($periodo === 'semana') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-    } elseif ($periodo === 'mes') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-    } elseif ($periodo === 'año') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 365 DAY)";
-    }
-    
-    try {
-        $stmt = $conexion->query("
-            SELECT nombre_solicitante, COUNT(*) as total_reportes 
-            FROM tickets 
-            $whereClause 
-            GROUP BY nombre_solicitante 
-            ORDER BY total_reportes DESC 
-            LIMIT 10
-        ");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
-    }
+// ==================== DATOS PARA GRÁFICOS INICIALES ====================
+
+// 1. Tickets por estado (abiertos, cerrados, en proceso)
+try {
+    $stmt = $conexion->query("
+        SELECT estado, COUNT(*) as cantidad 
+        FROM tickets 
+        GROUP BY estado 
+        ORDER BY cantidad DESC
+    ");
+    $datos_estados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $datos_estados = [];
 }
 
-$error = "";
-$datos_estados = obtenerEstadisticasEstados($conexion, 'todo');
-$datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
+// 2. Top 5 solicitantes del mes en curso
+try {
+    $stmt = $conexion->query("
+        SELECT nombre_solicitante, COUNT(*) as total 
+        FROM tickets 
+        WHERE YEAR(fecha_creacion) = YEAR(NOW()) AND MONTH(fecha_creacion) = MONTH(NOW())
+        GROUP BY nombre_solicitante 
+        ORDER BY total DESC 
+        LIMIT 5
+    ");
+    $top5_solicitantes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $top5_solicitantes = [];
+}
+
+// 3. Ranking de técnicos (responsables con más tickets)
+try {
+    $stmt = $conexion->query("
+        SELECT u.username as responsable, COUNT(*) as total 
+        FROM tickets t
+        LEFT JOIN users u ON t.responsable = u.id
+        WHERE t.responsable IS NOT NULL
+        GROUP BY t.responsable, u.username
+        ORDER BY total DESC 
+        LIMIT 10
+    ");
+    $ranking_tecnicos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $ranking_tecnicos = [];
+}
+
+// 4. Estadísticas generales
+try {
+    $stmt = $conexion->query("
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN estado = 'ticket cerrado' THEN 1 ELSE 0 END) as cerrados,
+            SUM(CASE WHEN estado != 'ticket cerrado' THEN 1 ELSE 0 END) as abiertos,
+            SUM(CASE WHEN estado = 'en proceso' THEN 1 ELSE 0 END) as en_proceso
+        FROM tickets
+    ");
+    $stats_generales = $stmt->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $stats_generales = ['total' => 0, 'cerrados' => 0, 'abiertos' => 0, 'en_proceso' => 0];
+}
+
+
 ?>
-
 <!DOCTYPE html>
 <html lang="es" id="htmlRoot">
 <head>
@@ -93,7 +117,8 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="css/dark-mode.css" rel="stylesheet">
-    <title>Reportes de Tickets</title>
+    <title>Reportes</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     <style>
         h1, h2, h3 {
             color: #8b9dff;
@@ -101,12 +126,97 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
-        h2 {
-            font-size: 1.75rem;
+        h2 { font-size: 1.75rem; margin-bottom: 30px; }
+        
+        .stat-card {
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-cerrados {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-abiertos {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-proceso {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .filtro-section {
+            background-color: rgba(139, 157, 255, 0.1);
+            border: 1px solid #8b9dff;
+            border-radius: 10px;
+            padding: 20px;
             margin-bottom: 30px;
         }
+
+        .btn-grupo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tabla-ranking {
+            font-size: 0.95rem;
+        }
+
+        .tabla-ranking th {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .tabla-ranking tbody tr {
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tabla-ranking tbody tr:hover {
+            background-color: rgba(139, 157, 255, 0.1);
+        }
+
+        .grafica-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 30px;
+        }
+
+        .card-header {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .btn-grupo {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     <script>
         (function() {
             const darkMode = localStorage.getItem('darkMode');
@@ -121,56 +231,121 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
 <body>
     <?php include 'includes/sidebar.php'; ?>
     
-    <div class="container mt-5 mb-5">
+    <div class="container-fluid mt-5 mb-5">
+        <!-- Encabezado -->
         <div class="row mb-4">
             <div class="col-md-12">
-                <h2 class="mb-4"><i></i>Reportes y Gráficas</h2>
+                <h2>📊 Reportes y Gráficas</h2>
             </div>
         </div>
 
-        <!-- Selector de Período -->
+        <!-- TARJETAS DE ESTADÍSTICAS -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card stat-total">
+                    <div class="stat-number"><?php echo $stats_generales['total']; ?></div>
+                    <div class="stat-label">Total de Tickets</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card stat-cerrados">
+                    <div class="stat-number"><?php echo $stats_generales['cerrados']; ?></div>
+                    <div class="stat-label">Tickets Cerrados</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card stat-abiertos">
+                    <div class="stat-number"><?php echo $stats_generales['abiertos']; ?></div>
+                    <div class="stat-label">Tickets Abiertos</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card stat-proceso">
+                    <div class="stat-number"><?php echo $stats_generales['en_proceso']; ?></div>
+                    <div class="stat-label">En Proceso</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE FILTROS -->
         <div class="row mb-4">
             <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row align-items-end">
-                            <div class="col-md-8">
-                                <label class="form-label"><strong>Filtrar por período:</strong></label>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="cargarDatos('semana')">📅 Última Semana</button>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="cargarDatos('mes')">📆 Último Mes</button>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="cargarDatos('año')">Último Año</button>
-                                    <button class="btn btn-sm btn-outline-primary active" onclick="cargarDatos('todo')">🔢 Todo el Tiempo</button>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <button class="btn btn-sm btn-info" data-bs-toggle="collapse" data-bs-target="#filtrosPersonalizados">
-                                    <i class="bi bi-funnel"></i> Filtro Personalizado
+                <div class="filtro-section">
+                    <h5 class="mb-3"><i class="bi bi-funnel"></i> Filtros Avanzados</h5>
+                    
+                    <form id="formFiltros" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="filtro_estado" class="form-label">Estado</label>
+                            <select class="form-select" id="filtro_estado" name="estado">
+                                <option value="">-- Todos --</option>
+                                <option value="sin abrir">Sin abrir</option>
+                                <option value="en conocimiento">En conocimiento</option>
+                                <option value="en proceso">En proceso</option>
+                                <option value="pendiente de cierre">Pendiente de cierre</option>
+                                <option value="ticket cerrado">Ticket Cerrado</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="filtro_solicitante" class="form-label">Solicitante</label>
+                            <select class="form-select" id="filtro_solicitante" name="solicitante">
+                                <option value="">-- Todos --</option>
+                                <?php foreach ($solicitantes_lista as $sol): ?>
+                                    <option value="<?php echo htmlspecialchars($sol); ?>">
+                                        <?php echo htmlspecialchars($sol); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="filtro_responsable" class="form-label">Responsable</label>
+                            <select class="form-select" id="filtro_responsable" name="responsable">
+                                <option value="">-- Todos --</option>
+                                <?php foreach ($responsables_lista as $resp): ?>
+                                    <option value="<?php echo htmlspecialchars($resp); ?>">
+                                        <?php echo htmlspecialchars($resp); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="filtro_fecha_desde" class="form-label">Desde</label>
+                            <input type="date" class="form-control" id="filtro_fecha_desde" name="fecha_desde">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="filtro_fecha_hasta" class="form-label">Hasta</label>
+                            <input type="date" class="form-control" id="filtro_fecha_hasta" name="fecha_hasta">
+                        </div>
+
+                        <div class="col-md-9">
+                            <div class="btn-grupo">
+                                <button type="button" class="btn btn-primary" onclick="aplicarFiltros()">
+                                    <i class="bi bi-search"></i> Aplicar Filtros
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="limpiarFiltros()">
+                                    <i class="bi bi-x"></i> Limpiar
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="descargarPDFPersonalizado()">
+                                    <i class="bi bi-file-pdf"></i> PDF Filtrado
                                 </button>
                             </div>
                         </div>
+                    </form>
 
-                        <!-- Filtros Personalizados (Ocultos por defecto) -->
-                        <div class="collapse mt-3" id="filtrosPersonalizados">
-                            <div class="card card-body border-info">
-                                <div class="row">
-                                    <div class="col-md-4 mb-3">
-                                        <label for="fecha_desde_grafico" class="form-label"><strong>📅 Desde:</strong></label>
-                                        <input type="date" class="form-control" id="fecha_desde_grafico">
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label for="fecha_hasta_grafico" class="form-label"><strong>📅 Hasta:</strong></label>
-                                        <input type="date" class="form-control" id="fecha_hasta_grafico">
-                                    </div>
-                                    <div class="col-md-4 d-flex align-items-end gap-2">
-                                        <button class="btn btn-success" onclick="aplicarFiltroPersonalizado()">
-                                            <i class="bi bi-check"></i> Aplicar
-                                        </button>
-                                        <button class="btn btn-secondary" onclick="limpiarFiltroPersonalizado()">
-                                            <i class="bi bi-x"></i> Limpiar
-                                        </button>
-                                    </div>
-                                </div>
+                    <!-- Botones de descarga rápida -->
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6 class="mb-2">📥 Descargas Rápidas</h6>
+                            <div class="btn-grupo" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+                                <button type="button" class="btn btn-success" onclick="descargarPDFMes()">
+                                    <i class="bi bi-calendar3"></i> PDF Mes Actual
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="descargarPDF7Dias()">
+                                    <i class="bi bi-calendar-event"></i> PDF Últimos 7 Días
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -178,56 +353,106 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
             </div>
         </div>
 
-        <!-- Gráficas -->
+        <!-- GRÁFICO PRINCIPAL -->
         <div class="row mb-4">
-            <!-- Gráfica de Estados -->
-            <div class="col-lg-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
                         <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Estados de Tickets</h5>
                     </div>
                     <div class="card-body">
-                        <div style="position: relative; height: 300px;">
+                        <div class="grafica-container">
                             <canvas id="chartEstados"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Gráfica de Top 10 Solicitantes -->
-            <div class="col-lg-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Top 10 Solicitantes</h5>
+            <!-- Estadísticas de mes -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calendar3"></i> Mes en Curso</h5>
                     </div>
                     <div class="card-body">
-                        <div style="position: relative; height: 300px;">
-                            <canvas id="chartSolicitantes"></canvas>
+                        <div id="mesActualStats">
+                            <div class="alert alert-info">Cargando...</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tabla de Solicitantes -->
+        <!-- TOP 5 SOLICITANTES -->
         <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-people"></i> Top 5 Solicitantes (Mes Actual)</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartTop5Solicitantes" class="grafica-container"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ranking de técnicos -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-person-badge"></i> Top 10 Técnicos (Responsables)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive tabla-ranking" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead class="sticky-top">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Técnico</th>
+                                        <th>Tickets</th>
+                                        <th>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaRankingTecnicos">
+                                    <?php
+                                    $total_tecnico = array_sum(array_column($ranking_tecnicos, 'total'));
+                                    foreach ($ranking_tecnicos as $i => $tecnico):
+                                        $porcentaje = $total_tecnico > 0 ? round(($tecnico['total'] / $total_tecnico) * 100, 1) : 0;
+                                    ?>
+                                        <tr>
+                                            <td><span class="badge bg-primary"><?php echo $i + 1; ?></span></td>
+                                            <td><strong><?php echo htmlspecialchars($tecnico['responsable']); ?></strong></td>
+                                            <td><span class="badge bg-success"><?php echo $tecnico['total']; ?></span></td>
+                                            <td><?php echo $porcentaje; ?>%</td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLA DE SOLICITANTES -->
+        <div class="row">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header text-white" style="background-color: #667eea;">
-                        <h5 class="mb-0"><i class="bi bi-list"></i> Detalle de Top 10 Solicitantes</h5>
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-list"></i> Detalle Top 5 Solicitantes (Mes Actual)</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-hover table-striped" id="tablaSolicitantes">
-                                <thead class="table-dark">
+                            <table class="table table-hover tabla-ranking">
+                                <thead>
                                     <tr>
                                         <th>Posición</th>
                                         <th>Solicitante</th>
-                                        <th>Total Incidencias</th>
+                                        <th>Total Tickets</th>
                                         <th>Porcentaje</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tablaBody">
+                                <tbody id="tablaTop5">
                                     <!-- Se llena con JavaScript -->
                                 </tbody>
                             </table>
@@ -237,69 +462,10 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
             </div>
         </div>
 
-        <!-- Sección de Descargar PDF -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card bg-light">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-file-pdf"></i> Descargar Reportes en PDF</h5>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" action="generar_reporte_pdf.php" target="_blank">
-                            <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <label for="filtro_estado" class="form-label"><strong>Estado del Ticket</strong></label>
-                                    <select class="form-select" id="filtro_estado" name="filtro_estado">
-                                        <option value="">-- Todos los estados --</option>
-                                        <option value="sin abrir">Sin abrir</option>
-                                        <option value="en conocimiento">En conocimiento</option>
-                                        <option value="en proceso">En proceso</option>
-                                        <option value="pendiente de cierre">Pendiente de cierre</option>
-                                        <option value="ticket cerrado">Ticket Cerrado</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <label for="filtro_solicitante" class="form-label"><strong>Solicitante</strong></label>
-                                    <select class="form-select" id="filtro_solicitante" name="filtro_solicitante">
-                                        <option value="">-- Todos los solicitantes --</option>
-                                        <?php foreach ($solicitantes as $solicitante): ?>
-                                            <option value="<?php echo htmlspecialchars($solicitante); ?>">
-                                                <?php echo htmlspecialchars($solicitante); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-2 mb-3">
-                                    <label for="fecha_desde" class="form-label"><strong>Fecha Desde</strong></label>
-                                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde">
-                                </div>
-
-                                <div class="col-md-2 mb-3">
-                                    <label for="fecha_hasta" class="form-label"><strong>Fecha Hasta</strong></label>
-                                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta">
-                                </div>
-
-                                <div class="col-md-2 mb-3">
-                                    <label for="tipo_reporte" class="form-label"><strong>Tipo Reporte</strong></label>
-                                    <select class="form-select" id="tipo_reporte" name="tipo_reporte">
-                                        <option value="completo">Completo</option>
-                                        <option value="resumen">Resumido</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-danger">
-                                    <i class="bi bi-file-pdf"></i> Descargar PDF
-                                </button>
-                                <a href="tickets.php" class="btn btn-secondary">Volver</a>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+        <div class="text-center mt-4 mb-4">
+            <a href="tickets.php" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver a Tickets
+            </a>
         </div>
     </div>
 
@@ -311,15 +477,19 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
         // Datos iniciales
         const datosIniciales = {
             estados: <?php echo json_encode($datos_estados); ?>,
-            solicitantes: <?php echo json_encode($datos_solicitantes); ?>
+            top5: <?php echo json_encode($top5_solicitantes); ?>,
+            tecnicos: <?php echo json_encode($ranking_tecnicos); ?>
         };
 
-        function inicializarGraficas() {
+        // Inicializar gráficas al cargar
+        document.addEventListener('DOMContentLoaded', function() {
             crearGraficaEstados(datosIniciales.estados);
-            crearGraficaSolicitantes(datosIniciales.solicitantes);
-            actualizarTabla(datosIniciales.solicitantes);
-        }
+            crearGraficaTop5(datosIniciales.top5);
+            actualizarTablaTop5(datosIniciales.top5);
+            cargarEstadisticasMes();
+        });
 
+        // Crear gráfica de estados (Doughnut)
         function crearGraficaEstados(datos) {
             const ctx = document.getElementById('chartEstados').getContext('2d');
             
@@ -362,25 +532,32 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
             });
         }
 
-        function crearGraficaSolicitantes(datos) {
-            const ctx = document.getElementById('chartSolicitantes').getContext('2d');
+        // Crear gráfica Top 5 (Bar)
+        function crearGraficaTop5(datos) {
+            const ctx = document.getElementById('chartTop5Solicitantes').getContext('2d');
 
             if (chartSolicitantes) {
                 chartSolicitantes.destroy();
             }
 
-            const labels = datos.map(d => d.nombre_solicitante.substring(0, 15));
-            const values = datos.map(d => d.total_reportes);
+            if (datos.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillText('Sin datos disponibles', 50, 50);
+                return;
+            }
+
+            const labels = datos.map(d => d.nombre_solicitante.substring(0, 12));
+            const values = datos.map(d => d.total);
 
             chartSolicitantes = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Incidencias Reportadas',
+                        label: 'Tickets Reportados',
                         data: values,
-                        backgroundColor: '#28a745',
-                        borderColor: '#1e7e34',
+                        backgroundColor: '#667eea',
+                        borderColor: '#4a5fc1',
                         borderWidth: 1
                     }]
                 },
@@ -390,7 +567,8 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'top'
                         }
                     },
                     scales: {
@@ -405,26 +583,23 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
             });
         }
 
-        function actualizarTabla(datos) {
-            const tbody = document.getElementById('tablaBody');
+        // Actualizar tabla Top 5
+        function actualizarTablaTop5(datos) {
+            const tbody = document.getElementById('tablaTop5');
             tbody.innerHTML = '';
 
-            const totalIncidencias = datos.reduce((sum, d) => sum + parseInt(d.total_reportes), 0);
+            const total = datos.reduce((sum, d) => sum + d.total, 0);
 
-            datos.forEach((solicitante, index) => {
-                const porcentaje = ((solicitante.total_reportes / totalIncidencias) * 100).toFixed(1);
+            datos.forEach((sol, index) => {
+                const porcentaje = total > 0 ? ((sol.total / total) * 100).toFixed(1) : 0;
                 const row = `
                     <tr>
+                        <td><span class="badge bg-primary">${index + 1}</span></td>
+                        <td><strong>${sol.nombre_solicitante}</strong></td>
+                        <td><span class="badge bg-success">${sol.total}</span></td>
                         <td>
-                            <span class="badge bg-primary rounded-pill">${index + 1}</span>
-                        </td>
-                        <td><strong>${solicitante.nombre_solicitante}</strong></td>
-                        <td>
-                            <span class="badge bg-success">${solicitante.total_reportes}</span>
-                        </td>
-                        <td>
-                            <div class="progress" style="height: 20px;">
-                                <div class="progress-bar" role="progressbar" style="width: ${porcentaje}%;" aria-valuenow="${porcentaje}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress" style="height: 20px; width: 150px;">
+                                <div class="progress-bar" style="width: ${porcentaje}%;" role="progressbar">
                                     ${porcentaje}%
                                 </div>
                             </div>
@@ -434,59 +609,54 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
                 tbody.innerHTML += row;
             });
         }
-        function cargarDatos(periodo) {
-            // Limpiar filtro personalizado
-            document.getElementById('fecha_desde_grafico').value = '';
-            document.getElementById('fecha_hasta_grafico').value = '';
-            
-            // Actualizar botones
-            document.querySelectorAll('.btn-outline-primary, .btn-outline-primary.active').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
 
-            // Cargar datos desde servidor
-            fetch(`api_reportes.php?periodo=${periodo}`)
+        // Cargar estadísticas del mes
+        function cargarEstadisticasMes() {
+            fetch('api_reportes.php?accion=mes_actual')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        crearGraficaEstados(data.estados);
-                        crearGraficaSolicitantes(data.solicitantes);
-                        actualizarTabla(data.solicitantes);
-                    } else {
-                        alert('Error: ' + data.error);
+                        const html = `
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Total:</td>
+                                    <td><strong>${data.total}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Abiertos:</td>
+                                    <td><span class="badge bg-info">${data.abiertos}</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Cerrados:</td>
+                                    <td><span class="badge bg-success">${data.cerrados}</span></td>
+                                </tr>
+                                <tr>
+                                    <td>En Proceso:</td>
+                                    <td><span class="badge bg-warning">${data.en_proceso}</span></td>
+                                </tr>
+                            </table>
+                        `;
+                        document.getElementById('mesActualStats').innerHTML = html;
                     }
                 })
-                .catch(error => {
-                    console.error('Error cargando datos:', error);
-                    alert('Error al cargar los datos');
-                });
+                .catch(error => console.error('Error:', error));
         }
 
-        function aplicarFiltroPersonalizado() {
-            const fechaDesde = document.getElementById('fecha_desde_grafico').value;
-            const fechaHasta = document.getElementById('fecha_hasta_grafico').value;
+        // Aplicar filtros
+        function aplicarFiltros() {
+            const estado = document.getElementById('filtro_estado').value;
+            const solicitante = document.getElementById('filtro_solicitante').value;
+            const responsable = document.getElementById('filtro_responsable').value;
+            const fecha_desde = document.getElementById('filtro_fecha_desde').value;
+            const fecha_hasta = document.getElementById('filtro_fecha_hasta').value;
 
-            if (!fechaDesde || !fechaHasta) {
-                alert('Por favor completa ambas fechas');
-                return;
-            }
-
-            if (fechaDesde > fechaHasta) {
-                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
-                return;
-            }
-
-            // Limpiar estado de botones
-            document.querySelectorAll('.btn-outline-primary').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Cargar datos con rango personalizado
             const params = new URLSearchParams({
-                periodo: 'personalizado',
-                fecha_desde: fechaDesde,
-                fecha_hasta: fechaHasta
+                accion: 'filtros',
+                estado: estado || '',
+                solicitante: solicitante || '',
+                responsable: responsable || '',
+                fecha_desde: fecha_desde || '',
+                fecha_hasta: fecha_hasta || ''
             });
 
             fetch(`api_reportes.php?${params}`)
@@ -494,55 +664,56 @@ $datos_solicitantes = obtenerTop10Solicitantes($conexion, 'todo');
                 .then(data => {
                     if (data.success) {
                         crearGraficaEstados(data.estados);
-                        crearGraficaSolicitantes(data.solicitantes);
-                        actualizarTabla(data.solicitantes);
+                        actualizarTablaTop5(data.top5);
                         
-                        // Mostrar mensaje
-                        const alert = document.createElement('div');
-                        alert.className = 'alert alert-success alert-dismissible fade show';
-                        alert.innerHTML = `
-                            ✓ Gráficas filtradas por rango: ${fechaDesde} a ${fechaHasta}
+                        const toast = `<div class="alert alert-success alert-dismissible fade show" role="alert">
+                            ✓ Filtros aplicados correctamente
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        `;
-                        document.querySelector('.container').insertBefore(alert, document.querySelector('.row').nextSibling);
-                        setTimeout(() => alert.remove(), 4000);
-                    } else {
-                        alert('Error: ' + data.error);
+                        </div>`;
+                        document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', toast);
+                        setTimeout(() => document.querySelector('.alert')?.remove(), 3000);
                     }
                 })
-                .catch(error => {
-                    console.error('Error cargando datos:', error);
-                    alert('Error al cargar los datos');
-                });
+                .catch(error => console.error('Error:', error));
         }
 
-        function limpiarFiltroPersonalizado() {
-            document.getElementById('fecha_desde_grafico').value = '';
-            document.getElementById('fecha_hasta_grafico').value = '';
-            cargarDatos('todo');
+        // Limpiar filtros
+        function limpiarFiltros() {
+            document.getElementById('formFiltros').reset();
+            crearGraficaEstados(datosIniciales.estados);
+            crearGraficaTop5(datosIniciales.top5);
+            actualizarTablaTop5(datosIniciales.top5);
         }
 
-        // Validar fechas en formulario PDF
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                const fechaDesde = document.querySelector('[name="fecha_desde"]');
-                const fechaHasta = document.querySelector('[name="fecha_hasta"]');
-                
-                if (fechaDesde && fechaHasta) {
-                    const desde = fechaDesde.value;
-                    const hasta = fechaHasta.value;
-                    
-                    if (desde && hasta && desde > hasta) {
-                        e.preventDefault();
-                        alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
-                        return false;
-                    }
-                }
+        // Descargar PDF personalizado
+        function descargarPDFPersonalizado() {
+            const estado = document.getElementById('filtro_estado').value;
+            const solicitante = document.getElementById('filtro_solicitante').value;
+            const responsable = document.getElementById('filtro_responsable').value;
+            const fecha_desde = document.getElementById('filtro_fecha_desde').value;
+            const fecha_hasta = document.getElementById('filtro_fecha_hasta').value;
+
+            const params = new URLSearchParams({
+                tipo: 'personalizado',
+                estado: estado || '',
+                solicitante: solicitante || '',
+                responsable: responsable || '',
+                fecha_desde: fecha_desde || '',
+                fecha_hasta: fecha_hasta || ''
             });
-        });
 
-        // Inicializar al cargar
-        document.addEventListener('DOMContentLoaded', inicializarGraficas);
+            window.open(`generar_reporte_pdf.php?${params}`, '_blank');
+        }
+
+        // Descargar PDF mes actual
+        function descargarPDFMes() {
+            window.open('generar_reporte_pdf.php?tipo=mes_actual', '_blank');
+        }
+
+        // Descargar PDF últimos 7 días
+        function descargarPDF7Dias() {
+            window.open('generar_reporte_pdf.php?tipo=ultimos_7_dias', '_blank');
+        }
     </script>
 </body>
 </html>
