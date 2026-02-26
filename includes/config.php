@@ -2,8 +2,8 @@
 $host = "localhost";
 $db   = "jupiter";
 $user = "root";
-$pass = "r652Is-scVT1HX3@";
-$port = 8889;
+$pass = "";
+$port = 3306;
 
 try {
     $conexion = new PDO(
