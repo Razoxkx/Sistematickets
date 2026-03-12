@@ -32,28 +32,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             // Verificar si existe y validar contraseña
             if ($user && password_verify($password, $user["password"])) {
+                // Regenerar ID de sesión para seguridad
+                session_regenerate_id(true);
+                
                 // Login exitoso
                 $_SESSION["user_id"] = $user["id"];
                 $_SESSION["username"] = $user["username"];
                 $_SESSION["role"] = $user["role"] ?? "viewer";
                 
-                // Debug: Log del estado
-                error_log("Login exitoso para: " . $username);
-                error_log("has_necesita_cambiar: " . ($has_necesita_cambiar ? "true" : "false"));
-                if ($has_necesita_cambiar && isset($user["necesita_cambiar_password"])) {
-                    error_log("necesita_cambiar_password value: " . ($user["necesita_cambiar_password"] ? "1" : "0"));
-                }
-                
                 // Verificar si necesita cambiar contraseña (solo si la columna existe)
                 if ($has_necesita_cambiar && isset($user["necesita_cambiar_password"]) && $user["necesita_cambiar_password"]) {
                     // Redirigir a la página de cambio de contraseña
-                    error_log("Redirigiendo a cambiar_contrasena.php");
-                    header("Location: cambiar_contrasena.php");
+                    header("Location: cambiar_contrasena.php", true, 302);
                     exit();
                 } else {
                     // Ir a reportes normalmente
-                    error_log("Redirigiendo a reportes.php");
-                    header("Location: reportes.php");
+                    header("Location: reportes.php", true, 302);
                     exit();
                 }
             } else {
@@ -67,7 +61,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 if (isset($_GET["logout"])) {
     session_destroy();
-    header("Location: index.php");
+    header("Location: index.php", true, 302);
     exit();
 }
 ?>

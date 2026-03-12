@@ -48,7 +48,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_masivo"])) {
                 $stmt->execute([$ticket_id, $_SESSION["user_id"], $comentario]);
             }
             
-            $success = "Se cerraron " . count($ticket_ids) . " ticket(s) correctamente";
+            // Redirigir con parámetro de éxito
+            $redirect_url = "tickets.php?success=cerrados_masivo&count=" . count($ticket_ids);
+            header("Location: " . $redirect_url);
+            exit();
         } catch (PDOException $e) {
             $error = "Error al cerrar tickets: " . $e->getMessage();
         }
@@ -56,6 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_masivo"])) {
 }
 
 $error = "";
+$success = "";
 $tickets = [];
 $busqueda = $_GET["buscar"] ?? "";
 $estado_filtro = $_GET["estado"] ?? "";
@@ -64,6 +68,14 @@ $mostrar_cerrados = $_GET["cerrados"] ?? "0";
 $pagina = max(1, (int)($_GET["pagina"] ?? 1));
 $orden = $_GET["orden"] ?? "fecha";
 $direccion = $_GET["dir"] ?? "DESC";
+
+// Procesar parámetro de éxito del cierre masivo
+if (isset($_GET["success"])) {
+    if ($_GET["success"] === "cerrados_masivo") {
+        $count = intval($_GET["count"] ?? 0);
+        $success = "Se cerraron " . $count . " ticket(s) correctamente";
+    }
+}
 
 // Validar orden para evitar SQL injection
 $ordenes_validas = ['ticket_number', 'titulo', 'estado', 'fecha', 'solicitante', 'responsable'];
@@ -101,16 +113,16 @@ $orden_map = [
 ];
 $columna_orden = $orden_map[$orden];
 
-// Obtener conteos por estado
+// Obtener conteos por estado (incluyendo tickets padre e hijo)
 $conteos_estado = [];
 foreach (['sin abrir', 'en conocimiento', 'en proceso', 'pendiente de cierre'] as $est) {
-    $stmt_conteo = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 0 AND estado = ? AND ticket_padre_id IS NULL");
+    $stmt_conteo = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 0 AND estado = ?");
     $stmt_conteo->execute([$est]);
     $conteos_estado[$est] = $stmt_conteo->fetch(PDO::FETCH_ASSOC)['total'];
 }
 
-// Obtener conteo de tickets cerrados
-$stmt_conteo_cerrados = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 1 AND ticket_padre_id IS NULL");
+// Obtener conteo de tickets cerrados (incluyendo tickets padre e hijo)
+$stmt_conteo_cerrados = $conexion->prepare("SELECT COUNT(*) as total FROM tickets WHERE es_cerrado = 1");
 $stmt_conteo_cerrados->execute();
 $conteo_cerrados = $stmt_conteo_cerrados->fetch(PDO::FETCH_ASSOC)['total'];
 
@@ -119,21 +131,16 @@ try {
     // Determinar si mostrar cerrados o abiertos
     $es_cerrado_condicion = ($mostrar_cerrados === "1") ? "1" : "0";
     
-    // Si es "mis tickets", mostrar padre e hijo; si no, solo mostrar padre
+    // Si es "mis tickets", mostrar solo tickets padre e hijo que me pertenecen
+    // Si no, mostrar todos los tickets (padre e hijo) - apartado TODOS
     if (!empty($mis_tickets) && $mis_tickets === "1") {
-        // Mostrar tickets padre Y tickets hijo que le pertenecen
-        $where = "t.es_cerrado = " . $es_cerrado_condicion . " AND (t.ticket_padre_id IS NULL OR t.responsable = ?)";
-        $params = [$_SESSION["user_id"]];
+        // Mostrar solo tickets padre e hijo que me pertenecen
+        $where = "t.es_cerrado = " . $es_cerrado_condicion . " AND t.responsable = ? AND (t.ticket_padre_id IS NULL OR t.usuario_creador = ?)";
+        $params = [$_SESSION["user_id"], $_SESSION["user_id"]];
     } else {
-        // Solo mostrar tickets padre (lista general)
-        $where = "t.es_cerrado = " . $es_cerrado_condicion . " AND t.ticket_padre_id IS NULL";
+        // Mostrar TODOS los tickets (padre e hijo) - vista general
+        $where = "t.es_cerrado = " . $es_cerrado_condicion;
         $params = [];
-    }
-    
-    // Filtro para mis tickets (responsable)
-    if (!empty($mis_tickets) && $mis_tickets === "1") {
-        $where .= " AND t.responsable = ?";
-        $params[] = $_SESSION["user_id"];
     }
     
     if (!empty($estado_filtro)) {
@@ -443,7 +450,7 @@ function getEstadoColor($estado) {
                                 <td>
                                     <strong><?php echo htmlspecialchars($ticket["ticket_number"]); ?></strong>
                                     <?php if ($ticket["ticket_padre_id"]): ?>
-                                        <br><small style="color: #17a2b8;"><i class="bi bi-diagram-3"></i> Sub tarea de: <a href="ver_ticket.php?id=<?php echo $ticket["ticket_padre_id"]; ?>" style="color: #17a2b8;"><?php echo htmlspecialchars($ticket["padre_numero"]); ?></a></small>
+                                        <br><span class="badge bg-info" style="font-size: 0.75rem;"><i class="bi bi-diagram-3"></i> SUBTAREA</span>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo htmlspecialchars($ticket["titulo"]); ?></td>
@@ -528,11 +535,6 @@ function getEstadoColor($estado) {
                                 <option value="Otros">Otros</option>
                             </select>
                         </div>
-                        
-                        <div class="mb-3" id="divOtros" style="display: none;">
-                            <label for="especificar" class="form-label">Especificar motivo:</label>
-                            <input type="text" class="form-control" id="especificar" name="motivo_otros" placeholder="Describe el motivo del cierre">
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -577,24 +579,14 @@ function getEstadoColor($estado) {
             modalCierre.show();
         }
         
-        // Mostrar input para "Otros"
-        document.getElementById('motivoCierre').addEventListener('change', function() {
-            document.getElementById('divOtros').style.display = this.value === 'Otros' ? 'block' : 'none';
-        });
-        
-        // Validar que si se selecciona "Otros", el campo esté lleno
+        // Validar antes de enviar
         document.querySelector('form').addEventListener('submit', function(e) {
             const motivo = document.getElementById('motivoCierre').value;
-            const especificar = document.getElementById('especificar').value;
             
-            if (motivo === 'Otros' && !especificar.trim()) {
+            if (!motivo) {
                 e.preventDefault();
-                alert('Debes especificar el motivo cuando seleccionas "Otros"');
+                alert('Debes seleccionar un motivo de cierre');
                 return false;
-            }
-            
-            if (motivo === 'Otros' && especificar.trim()) {
-                document.getElementById('ticketIdsInput').form.motivo_cierre.value = 'Otros: ' + especificar;
             }
         });
         
