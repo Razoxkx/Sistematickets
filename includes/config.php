@@ -1,9 +1,13 @@
 <?php
-$host = "localhost";
-$db   = "jupiter";
-$user = "root";
-$pass = "r652Is-scVT1HX3@";
-$port = 8888;
+// Cargar variables de entorno
+require_once 'env.php';
+
+// Obtener credenciales desde variables de entorno
+$host = obtenerEnv('DB_HOST', 'localhost');
+$db   = obtenerEnv('DB_NAME', 'jupiter');
+$user = obtenerEnv('DB_USER', 'root');
+$pass = obtenerEnv('DB_PASS', '');
+$port = obtenerEnv('DB_PORT', 8888);
 
 try {
     $conexion = new PDO(
@@ -13,7 +17,13 @@ try {
     );
     $conexion->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Error de conexión: " . $e->getMessage());
+    // En producción, no mostrar detalles sensibles
+    $env = obtenerEnv('APP_ENV', 'production');
+    if ($env === 'development') {
+        die("Error de conexión: " . $e->getMessage());
+    } else {
+        die("Error de conexión a la base de datos. Por favor, contacta al administrador.");
+    }
 }
 
 // Función para traducir roles

@@ -53,22 +53,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"]) && !$e
                 $column_names = array_column($columns, 'Field');
                 $has_email = in_array('email', $column_names);
                 $has_necesita_cambiar = in_array('necesita_cambiar_password', $column_names);
+                $has_numero_telefono = in_array('numero_telefono', $column_names);
                 
                 $password_hash = password_hash("111111", PASSWORD_BCRYPT);
                 
-                if ($has_email && $has_necesita_cambiar) {
-                    $stmt = $conexion->prepare("INSERT INTO users (username, password, email, role, necesita_cambiar_password) VALUES (?, ?, ?, ?, 1)");
-                    $stmt->execute([$username, $password_hash, $email, $role]);
-                } elseif ($has_email) {
-                    $stmt = $conexion->prepare("INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)");
-                    $stmt->execute([$username, $password_hash, $email, $role]);
-                } elseif ($has_necesita_cambiar) {
-                    $stmt = $conexion->prepare("INSERT INTO users (username, password, role, necesita_cambiar_password) VALUES (?, ?, ?, 1)");
-                    $stmt->execute([$username, $password_hash, $role]);
-                } else {
-                    $stmt = $conexion->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
-                    $stmt->execute([$username, $password_hash, $role]);
+                // Construir INSERT dinámicamente
+                $campos = ['username', 'password', 'role'];
+                $placeholders = ['?', '?', '?'];
+                $valores = [$username, $password_hash, $role];
+                
+                if ($has_email) {
+                    $campos[] = 'email';
+                    $placeholders[] = '?';
+                    $valores[] = $email;
                 }
+                
+                if ($has_numero_telefono) {
+                    $campos[] = 'numero_telefono';
+                    $placeholders[] = '?';
+                    $valores[] = '';
+                }
+                
+                if ($has_necesita_cambiar) {
+                    $campos[] = 'necesita_cambiar_password';
+                    $placeholders[] = '?';
+                    $valores[] = 1;
+                }
+                
+                $sql = "INSERT INTO users (" . implode(', ', $campos) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                $stmt = $conexion->prepare($sql);
+                $stmt->execute($valores);
+                
                 header("Location: usuarios.php?success=creado");
                 exit();
             }
@@ -99,29 +114,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
             $columns = $columns_query->fetchAll(PDO::FETCH_ASSOC);
             $column_names = array_column($columns, 'Field');
             $has_email = in_array('email', $column_names);
+            $has_numero_telefono = in_array('numero_telefono', $column_names);
             $has_necesita_cambiar = in_array('necesita_cambiar_password', $column_names);
+            
+            // Construir UPDATE dinámicamente
+            $campos_update = ['username = ?', 'role = ?'];
+            $valores = [$username, $role];
+            
+            if ($has_email) {
+                $campos_update[] = 'email = ?';
+                $valores[] = $email;
+            }
+            
+            if ($has_numero_telefono) {
+                $campos_update[] = 'numero_telefono = ?';
+                $valores[] = $_POST["numero_telefono"] ?? '';
+            }
             
             if (!empty($password_nueva)) {
                 $password_hash = password_hash($password_nueva, PASSWORD_BCRYPT);
-                if ($has_email && $has_necesita_cambiar) {
-                    $stmt = $conexion->prepare("UPDATE users SET username = ?, email = ?, role = ?, password = ?, necesita_cambiar_password = 0 WHERE id = ?");
-                    $stmt->execute([$username, $email, $role, $password_hash, $user_id]);
-                } elseif ($has_email) {
-                    $stmt = $conexion->prepare("UPDATE users SET username = ?, email = ?, role = ?, password = ? WHERE id = ?");
-                    $stmt->execute([$username, $email, $role, $password_hash, $user_id]);
-                } else {
-                    $stmt = $conexion->prepare("UPDATE users SET username = ?, role = ?, password = ? WHERE id = ?");
-                    $stmt->execute([$username, $role, $password_hash, $user_id]);
-                }
-            } else {
-                if ($has_email) {
-                    $stmt = $conexion->prepare("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?");
-                    $stmt->execute([$username, $email, $role, $user_id]);
-                } else {
-                    $stmt = $conexion->prepare("UPDATE users SET username = ?, role = ? WHERE id = ?");
-                    $stmt->execute([$username, $role, $user_id]);
+                $campos_update[] = 'password = ?';
+                $valores[] = $password_hash;
+                
+                if ($has_necesita_cambiar) {
+                    $campos_update[] = 'necesita_cambiar_password = 0';
                 }
             }
+            
+            $valores[] = $user_id;
+            $sql = "UPDATE users SET " . implode(', ', $campos_update) . " WHERE id = ?";
+            $stmt = $conexion->prepare($sql);
+            $stmt->execute($valores);
+            
             header("Location: usuarios.php?success=actualizado");
             exit();
         } catch (PDOException $e) {
@@ -159,10 +183,12 @@ try {
     $columns = $columns_query->fetchAll(PDO::FETCH_ASSOC);
     $column_names = array_column($columns, 'Field');
     $has_email = in_array('email', $column_names);
+    $has_numero_telefono = in_array('numero_telefono', $column_names);
     $has_necesita_cambiar = in_array('necesita_cambiar_password', $column_names);
     
     $select_fields = "id, username, role";
     if ($has_email) $select_fields .= ", email";
+    if ($has_numero_telefono) $select_fields .= ", numero_telefono";
     if ($has_necesita_cambiar) $select_fields .= ", necesita_cambiar_password";
     
     // tisupport solo ve su propio usuario, admin ve todos
@@ -178,6 +204,7 @@ try {
     $usuarios_procesados = [];
     foreach ($usuarios as $user) {
         if (!$has_email) $user['email'] = null;
+        if (!$has_numero_telefono) $user['numero_telefono'] = null;
         if (!$has_necesita_cambiar) $user['necesita_cambiar_password'] = 0;
         $usuarios_procesados[] = $user;
     }
@@ -197,6 +224,7 @@ if (isset($_GET["editar"])) {
     try {
         $select_fields = "id, username, role";
         if ($has_email) $select_fields .= ", email";
+        if ($has_numero_telefono) $select_fields .= ", numero_telefono";
         if ($has_necesita_cambiar) $select_fields .= ", necesita_cambiar_password";
         
         $stmt = $conexion->prepare("SELECT $select_fields FROM users WHERE id = ?");
@@ -205,6 +233,7 @@ if (isset($_GET["editar"])) {
         
         if ($usuario_editar) {
             if (!$has_email) $usuario_editar['email'] = null;
+            if (!$has_numero_telefono) $usuario_editar['numero_telefono'] = null;
             if (!$has_necesita_cambiar) $usuario_editar['necesita_cambiar_password'] = 0;
         }
     } catch (PDOException $e) {
