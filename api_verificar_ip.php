@@ -2,8 +2,9 @@
 session_start();
 require_once 'includes/config.php';
 
-// Verificar si el usuario está logueado y es admin
-if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
+// Verificar si el usuario está logueado y tiene permisos (admin o tisupport)
+$permisos = ['admin', 'tisupport'];
+if (!isset($_SESSION["user_id"]) || !in_array($_SESSION["role"] ?? "viewer", $permisos)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'No autorizado']);
     exit();

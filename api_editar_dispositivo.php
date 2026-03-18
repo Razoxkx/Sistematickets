@@ -4,8 +4,9 @@ require_once 'includes/config.php';
 
 header('Content-Type: application/json');
 
-// Verificar si el usuario está autenticado y es admin
-if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
+// Verificar si el usuario está autenticado y tiene permisos (admin o tisupport)
+$permisos = ['admin', 'tisupport'];
+if (!isset($_SESSION["user_id"]) || !in_array($_SESSION["role"] ?? "viewer", $permisos)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'mensaje' => 'No autorizado']);
     exit();
