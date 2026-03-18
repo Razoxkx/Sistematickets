@@ -40,6 +40,10 @@ $success = "";
 
 // Procesar el cambio de contraseña
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
     $password_actual = $_POST["password_actual"] ?? "";
     $password_nueva = $_POST["password_nueva"] ?? "";
     $password_confirmar = $_POST["password_confirmar"] ?? "";
@@ -84,6 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } catch (PDOException $e) {
             $error = "Error al cambiar contraseña: " . $e->getMessage();
         }
+    }
     }
 }
 ?>
@@ -148,6 +153,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <?php endif; ?>
                         
                         <form method="POST">
+                            <?php echo inputTokenCSRF(); ?>
                             <div class="mb-3">
                                 <label for="password_actual" class="form-label">Contraseña Actual *</label>
                                 <input type="password" class="form-control" id="password_actual" name="password_actual" required autofocus>

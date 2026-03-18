@@ -96,24 +96,10 @@ try {
         /* Contenedor principal responsivo */
         .container {
             margin-top: 20px;
-            padding-left: 0;
+            padding-left: 100;
             padding-right: 0;
         }
 
-        /* Sidebar adjustments */
-        body {
-            margin-left: 280px;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                margin-left: 70px;
-            }
-
-            .container {
-                margin-top: 15px;
-            }
-        }
 
         .cuenta-card {
             
@@ -363,7 +349,6 @@ try {
                                             <i class="bi bi-person"></i> <?php echo htmlspecialchars($cuenta["creador_nombre"]); ?>
                                         </small>
                                     </div>
-                                    <span class="badge bg-info flex-shrink-0 ms-2"><?php echo htmlspecialchars(substr($cuenta["plataforma"], 0, 3)); ?></span>
                                 </div>
 
                                 <hr>

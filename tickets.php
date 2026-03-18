@@ -22,6 +22,10 @@ if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
 
 // Procesar cierre masivo
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_masivo"])) {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
     $ticket_ids_input = $_POST["ticket_ids"] ?? "";
     $motivo = $_POST["motivo_cierre"] ?? "";
     
@@ -55,6 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_masivo"])) {
         } catch (PDOException $e) {
             $error = "Error al cerrar tickets: " . $e->getMessage();
         }
+    }
     }
 }
 
@@ -521,6 +526,7 @@ function getEstadoColor($estado) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST" action="">
+                    <?php echo inputTokenCSRF(); ?>
                     <div class="modal-body">
                         <p class="text-muted">Selecciona un motivo para cerrar los <strong id="modalCountTickets">0</strong> ticket(s) seleccionado(s):</p>
                         

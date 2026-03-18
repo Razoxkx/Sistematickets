@@ -37,6 +37,7 @@ require_once 'includes/login.php';
                         <?php endif; ?>
                         
                         <form method="POST" action="">
+                            <?php echo inputTokenCSRF(); ?>
                             <div class="mb-3">
                                 <label for="username" class="form-label">
                                     <i class="bi bi-person"></i> Nombre de usuario

@@ -254,6 +254,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["nuevo_comentario"])) {
 
 // Cerrar/Reabrir ticket
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_ticket"])) {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
     try {
         $nuevo_estado_cerrado = $_POST["cerrar_ticket"] === "cerrar" ? 1 : 0;
         
@@ -319,10 +323,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cerrar_ticket"])) {
     } catch (PDOException $e) {
         $error = "Error al cerrar/reabrir ticket: " . $e->getMessage();
     }
+    }
 }
 
 // Editar comentario
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_comentario_id"])) {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
     $comentario_id = $_POST["editar_comentario_id"];
     $nuevo_texto = $_POST["comentario_editado"] ?? "";
     
@@ -349,12 +358,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_comentario_id"]
             $error = "Error al editar comentario: " . $e->getMessage();
         }
     }
+    }
 }
 
 // Editar descripción del ticket (solo admins)
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editar_descripcion_id"])) {
-    // Validar que sea admin
-    if ($_SESSION["role"] !== "admin") {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } elseif ($_SESSION["role"] !== "admin") {
         $error = "Solo los administradores pueden editar la descripción";
     } else {
         $descripcion_nueva = $_POST["descripcion_editada"] ?? "";
@@ -1213,6 +1225,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST" action="">
+                    <?php echo inputTokenCSRF(); ?>
                     <div class="modal-body">
                         <p class="text-muted"><strong>⚠️ Antes de cerrar, debes escribir un comentario explicando cómo se resolvió el ticket:</strong></p>
                         

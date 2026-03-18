@@ -35,12 +35,19 @@ if (isset($_GET["success"])) {
 
 // CREAR USUARIO - POST (solo admin)
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"]) && !$es_tisupport) {
-    $username = trim($_POST["username"] ?? "");
-    $email = trim($_POST["email"] ?? "");
-    $role = $_POST["role"] ?? "viewer";
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
+    // Sanitizar datos de entrada
+    $username = sanitizarUsername(trim($_POST["username"] ?? ""));
+    $email = sanitizarEmail(trim($_POST["email"] ?? ""));
+    $role = validarRol($_POST["role"] ?? "viewer");
     
     if (empty($username)) {
-        $error = "El nombre de usuario es obligatorio";
+        $error = "Usuario inválido. Solo permite: letras, números, punto, guión (3-30 caracteres)";
+    } elseif (!empty($_POST["email"]) && empty($email)) {
+        $error = "Email inválido";
     } else {
         try {
             $stmt = $conexion->prepare("SELECT id FROM users WHERE username = ?");
@@ -88,27 +95,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"]) && !$e
                 exit();
             }
         } catch (PDOException $e) {
-            $error = "Error al crear usuario: " . $e->getMessage();
+            // Intentar mostrar mensaje amigable para usuario duplicado
+            $error_amigable = manejarErrorUsuarioDuplicado($e, $conexion);
+            $error = $error_amigable ?? "Error al crear usuario: " . $e->getMessage();
         }
+    }
     }
 }
 
 // EDITAR USUARIO - POST
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
-    $user_id = $_POST["user_id"] ?? "";
-    
-    // Verificar permisos: tisupport solo puede editar su propio usuario
-    if ($es_tisupport && $user_id != $_SESSION["user_id"]) {
-        $error = "No tienes permisos para editar otros usuarios";
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
     } else {
-        $username = trim($_POST["username"] ?? "");
-        $email = trim($_POST["email"] ?? "");
-        $role = $_POST["role"] ?? "viewer";
-        $password_nueva = trim($_POST["password_nueva"] ?? "");
+    $user_id = validarID($_POST["user_id"] ?? "");
+    $username = sanitizarUsername(trim($_POST["username"] ?? ""));
+    $email = sanitizarEmail(trim($_POST["email"] ?? ""));
+    $role = validarRol($_POST["role"] ?? "viewer");
     
-    if (empty($username)) {
-        $error = "El nombre de usuario es obligatorio";
+    if (!$user_id) {
+        $error = "ID de usuario inválido";
+    } elseif (empty($username)) {
+        $error = "Usuario inválido. Solo permite: letras, números, punto, guión (3-30 caracteres)";
+    } elseif (!empty($_POST["email"]) && empty($email)) {
+        $error = "Email inválido";
+    } elseif (!empty($_POST["password_nueva"]) && !validarContrasena($_POST["password_nueva"])) {
+        $error = "Contraseña debe tener al menos 6 caracteres";
     } else {
+    
         try {
             $columns_query = $conexion->query("SHOW COLUMNS FROM users");
             $columns = $columns_query->fetchAll(PDO::FETCH_ASSOC);
@@ -128,11 +143,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
             
             if ($has_numero_telefono) {
                 $campos_update[] = 'numero_telefono = ?';
-                $valores[] = $_POST["numero_telefono"] ?? '';
+                $valores[] = sanitizarTelefono($_POST["numero_telefono"] ?? '');
             }
             
-            if (!empty($password_nueva)) {
-                $password_hash = password_hash($password_nueva, PASSWORD_BCRYPT);
+            if (!empty($_POST["password_nueva"])) {
+                $password_hash = password_hash($_POST["password_nueva"], PASSWORD_BCRYPT);
                 $campos_update[] = 'password = ?';
                 $valores[] = $password_hash;
                 
@@ -149,16 +164,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
             header("Location: usuarios.php?success=actualizado");
             exit();
         } catch (PDOException $e) {
-            $error = "Error al actualizar usuario: " . $e->getMessage();
+            // Intentar mostrar mensaje amigable para usuario duplicado
+            $error_amigable = manejarErrorUsuarioDuplicado($e, $conexion);
+            $error = $error_amigable ?? "Error al actualizar usuario: " . $e->getMessage();
         }
-    }
     }
 }
 
 // ELIMINAR USUARIO - POST (solo admin)
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar"]) && !$es_tisupport) {
-    $user_id = $_POST["user_id"] ?? "";
-    if (!empty($user_id) && $user_id != $_SESSION["user_id"]) {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
+    $user_id = validarID($_POST["user_id"] ?? "");
+    if (!$user_id) {
+        $error = "ID de usuario inválido";
+    } elseif ($user_id == $_SESSION["user_id"]) {
+        $error = "No puedes eliminar tu propia cuenta";
+    } else {
         try {
             $stmt = $conexion->prepare("DELETE FROM users WHERE id = ?");
             $stmt->execute([$user_id]);
@@ -172,9 +196,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar"]) && 
                 $error = "Error al eliminar usuario: " . $e->getMessage();
             }
         }
-    } else {
-        $error = "No puedes eliminar tu propia cuenta";
     }
+    }
+}
 }
 
 // OBTENER LISTA DE USUARIOS
@@ -482,6 +506,7 @@ if (isset($_GET["editar"])) {
                                                     <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
                                                         <input type="hidden" name="user_id" value="<?php echo $user["id"]; ?>">
                                                         <input type="hidden" name="accion_eliminar" value="1">
+                                                        <?php echo inputTokenCSRF(); ?>
                                                         <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Eliminar</button>
                                                     </form>
                                                 <?php endif; ?>
@@ -513,6 +538,7 @@ if (isset($_GET["editar"])) {
                 </div>
                 <form method="POST">
                     <input type="hidden" name="accion_crear" value="1">
+                    <?php echo inputTokenCSRF(); ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="username_new" class="form-label">Nombre de Usuario *</label>
@@ -559,6 +585,7 @@ if (isset($_GET["editar"])) {
                 <form method="POST">
                     <input type="hidden" name="accion_editar" value="1">
                     <input type="hidden" name="user_id" id="edit_user_id" value="">
+                    <?php echo inputTokenCSRF(); ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="username_edit" class="form-label">Nombre de Usuario *</label>

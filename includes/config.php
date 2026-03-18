@@ -26,6 +26,17 @@ try {
     }
 }
 
+// Cargar protección CSRF
+require_once 'csrf.php';
+
+// Cargar funciones de validación
+require_once 'validation.php';
+
+// Inicializar CSRF si hay sesión activa
+if (isset($_SESSION)) {
+    inicializarCSRF();
+}
+
 // Función para traducir roles
 function traducirRol($rol) {
     $traducciones = [
@@ -216,5 +227,42 @@ function procesarHashtagsContactos($texto) {
     );
     
     return $texto;
+}
+
+/**
+ * Maneja el error de usuario duplicado de forma amigable
+ * Si el error es 1062 (duplicate entry), retorna un mensaje amigable con el tipo de usuario
+ * Si no, retorna NULL para que se maneje con el mensaje de error original
+ */
+function manejarErrorUsuarioDuplicado($e, $conexion) {
+    // Verificar si es error de integridad (1062 = duplicate entry)
+    if ($e->getCode() != '23000') {
+        return null;
+    }
+    
+    // Extraer el username del mensaje de error
+    // Ejemplo: "Duplicate entry 'ricardo.vargas' for key 'users.username'"
+    if (preg_match("/Duplicate entry '([^']+)' for key 'users\.username'/i", $e->getMessage(), $matches)) {
+        $username_duplicado = $matches[1];
+        
+        try {
+            // Obtener el rol del usuario duplicado
+            $stmt = $conexion->prepare("SELECT role FROM users WHERE username = ? LIMIT 1");
+            $stmt->execute([$username_duplicado]);
+            $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($usuario) {
+                // Traducir el rol
+                $rol = $usuario['role'];
+                $rol_traducido = ($rol === 'contacto') ? 'contacto' : 'usuario';
+                
+                return "El usuario " . htmlspecialchars($username_duplicado) . " ya ha sido creado con el rol de " . $rol_traducido . ".";
+            }
+        } catch (PDOException $dbError) {
+            // Si hay error al consultar, no retornar nada
+        }
+    }
+    
+    return null;
 }
 

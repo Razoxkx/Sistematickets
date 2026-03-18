@@ -32,6 +32,10 @@ if (isset($_GET["success"])) {
 
 // CONTACTOS - CREAR
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear_contacto"])) {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
     $nombre_completo = trim($_POST["nombre_completo"] ?? "");
     $nombre_usuario = trim($_POST["nombre_usuario"] ?? "");
     $correo = trim($_POST["correo"] ?? "");
@@ -51,13 +55,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear_contacto"
             header("Location: contactos.php?success=contacto_creado");
             exit();
         } catch (PDOException $e) {
-            $error = "Error al crear contacto: " . $e->getMessage();
+            // Intentar mostrar mensaje amigable para usuario duplicado
+            $error_amigable = manejarErrorUsuarioDuplicado($e, $conexion);
+            $error = $error_amigable ?? "Error al crear contacto: " . $e->getMessage();
         }
+    }
     }
 }
 
 // CONTACTOS - EDITAR
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar_contacto"])) {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
     $contacto_id = $_POST["contacto_id"] ?? "";
     $nombre_completo = trim($_POST["nombre_completo"] ?? "");
     $nombre_usuario = trim($_POST["nombre_usuario"] ?? "");
@@ -79,13 +90,20 @@ $stmt->execute([$nombre_completo, $nombre_usuario, $correo, $numero_telefono, $d
             header("Location: contactos.php?success=contacto_actualizado");
             exit();
         } catch (PDOException $e) {
-            $error = "Error al actualizar contacto: " . $e->getMessage();
+            // Intentar mostrar mensaje amigable para usuario duplicado
+            $error_amigable = manejarErrorUsuarioDuplicado($e, $conexion);
+            $error = $error_amigable ?? "Error al actualizar contacto: " . $e->getMessage();
         }
+    }
     }
 }
 
 // CONTACTOS - ELIMINAR
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar_contacto"])) {
+    // Validar token CSRF
+    if (!validarTokenCSRF()) {
+        $error = "Sesión expirada. Por favor intenta de nuevo.";
+    } else {
     $contacto_id = $_POST["contacto_id"] ?? "";
     if (!empty($contacto_id)) {
         try {
@@ -96,6 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar_contac
         } catch (PDOException $e) {
             $error = "Error al eliminar contacto: " . $e->getMessage();
         }
+    }
     }
 }
 
@@ -364,6 +383,7 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                                 <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
                                                     <input type="hidden" name="contacto_id" value="<?php echo $contacto["id"]; ?>">
                                                     <input type="hidden" name="accion_eliminar_contacto" value="1">
+                                                    <?php echo inputTokenCSRF(); ?>
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
@@ -433,6 +453,7 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                 </div>
                 <form method="POST">
                     <input type="hidden" name="accion_crear_contacto" value="1">
+                    <?php echo inputTokenCSRF(); ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="nombre_completo_new" class="form-label">Nombre Completo *</label>
@@ -475,6 +496,7 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                 <form method="POST">
                     <input type="hidden" name="accion_editar_contacto" value="1">
                     <input type="hidden" name="contacto_id" id="edit_contacto_id" value="">
+                    <?php echo inputTokenCSRF(); ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="nombre_completo_edit" class="form-label">Nombre Completo *</label>
@@ -569,6 +591,7 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                     <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
                                         <input type="hidden" name="contacto_id" value="${contacto.id}">
                                         <input type="hidden" name="accion_eliminar_contacto" value="1">
+                                        <?php echo inputTokenCSRF(); ?>
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
                                             <i class="bi bi-trash"></i>
                                         </button>
