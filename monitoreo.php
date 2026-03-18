@@ -8,8 +8,9 @@ if (!isset($_SESSION["user_id"])) {
     exit();
 }
 
-// Verificar si es admin
-if ($_SESSION["role"] !== "admin") {
+// Verificar si es admin o soporte TI
+$permisos = ['admin', 'tisupport'];
+if (!in_array($_SESSION["role"] ?? "viewer", $permisos)) {
     header("Location: tickets.php");
     exit();
 }
