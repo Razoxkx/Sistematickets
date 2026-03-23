@@ -1185,6 +1185,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                                     <form method="POST" action="">
                                         <textarea class="form-control mb-2" name="comentario_editado" rows="3"><?php echo htmlspecialchars($com["comentario"]); ?></textarea>
                                         <input type="hidden" name="editar_comentario_id" value="<?php echo $com['id']; ?>">
+                                        <?php echo inputTokenCSRF(); ?>
                                         <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
                                         <button type="button" class="btn btn-sm btn-secondary" onclick="cancelarEditar(<?php echo $com['id']; ?>)">Cancelar</button>
                                     </form>
@@ -1593,6 +1594,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
             
             // Determinar si mostrar botón de editar
             const userId = <?php echo $_SESSION["user_id"]; ?>;
+            const csrfToken = '<?php echo obtenerTokenCSRF(); ?>';
             const puedeEditar = (com.usuario_id == userId && com.tipo_comentario !== 'asignacion' && com.tipo_comentario !== 'cierre');
             const botonEditar = puedeEditar ? `<button class="btn btn-sm btn-outline-primary btn-editar-com" onclick="editarComentario(${com.id})">Editar</button>` : '';
             
@@ -1612,6 +1614,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                         <form method="POST" action="">
                             <textarea class="form-control mb-2" name="comentario_editado" rows="3">${com.comentario.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
                             <input type="hidden" name="editar_comentario_id" value="${com.id}">
+                            <input type="hidden" name="csrf_token" value="${csrfToken}">
                             <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
                             <button type="button" class="btn btn-sm btn-secondary" onclick="cancelarEditar(${com.id})">Cancelar</button>
                         </form>

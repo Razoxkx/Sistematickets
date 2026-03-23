@@ -1,1 +1,66 @@
+# ========================================
+# ARCHIVOS DE CONFIGURACIÓN Y SECRETOS
+# ========================================
+
+# Variables de entorno con credenciales
+.env
+.env.local
+.env.*.local
+
+# Archivo de configuración heredado (mantener por compatibilidad)
 includes/config.php
+
+# ========================================
+# SISTEMA OPERATIVO
+# ========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+
+# ========================================
+# IDE Y EDITORES
+# ========================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.netbeans/
+
+# ========================================
+# DEPENDENCIAS
+# ========================================
+vendor/
+composer.lock
+node_modules/
+package-lock.json
+.nuget/
+
+# ========================================
+# LOGS Y CACHÉS
+# ========================================
+logs/
+*.log
+tmp/
+temp/
+cache/
+.cache/
+
+# ========================================
+# ARCHIVOS TEMPORALES
+# ========================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# ========================================
+# UPLOADS SENSIBLES (si los hay)
+# ========================================
+uploads/temp/
+uploads/cache/

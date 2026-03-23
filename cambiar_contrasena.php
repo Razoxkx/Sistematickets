@@ -28,7 +28,7 @@ try {
     // Si el usuario ya cambió su contraseña, redirigir al dashboard
     // (Solo si la columna existe y vale 0)
     if ($has_necesita_cambiar && $user && !$user["necesita_cambiar_password"]) {
-        header("Location: dashboard.php");
+        header("Location: monitoreo.php");
         exit();
     }
 } catch (PDOException $e) {
@@ -194,7 +194,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 document.body.classList.add('fade-out');
                 // Redirigir después de que termine la animación
                 setTimeout(() => {
-                    window.location.href = 'dashboard.php';
+                    window.location.href = 'monitoreo.php';
                 }, 600);
             }, 500);
         }

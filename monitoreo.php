@@ -80,6 +80,10 @@ try {
     $error = "Error al obtener dispositivos: " . $e->getMessage();
 }
 
+// Detectar modo fullscreen
+$fullscreen = isset($_GET['fullscreen']) && $_GET['fullscreen'] === '1';
+
+
 // Capturar mensaje de éxito
 if (isset($_GET["success"])) {
     if ($_GET["success"] === "creado") {
@@ -265,6 +269,70 @@ if (isset($_GET["success"])) {
                 padding-right: 5px;
             }
         }
+
+        /* Modo Fullscreen */
+        body.fullscreen-mode {
+            background: #000;
+            margin: 0;
+            padding: 0;
+        }
+
+        body.fullscreen-mode .sidebar {
+            display: none;
+        }
+
+        body.fullscreen-mode .container {
+            max-width: 100%;
+            margin: 0;
+            padding: 30px;
+        }
+
+        body.fullscreen-mode .row {
+            margin-bottom: 0;
+        }
+
+        body.fullscreen-mode h1,
+        body.fullscreen-mode .alert,
+        body.fullscreen-mode button.btn-primary {
+            display: none;
+        }
+
+        body.fullscreen-mode #containerDispositivos {
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 25px;
+        }
+
+        body.fullscreen-mode .dispositivo-card {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        }
+
+        body.fullscreen-mode .card-body {
+            padding: 25px !important;
+        }
+
+        .fullscreen-exit-button {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        body.fullscreen-mode .fullscreen-exit-button {
+            display: block;
+        }
+
+        body.fullscreen-mode .fullscreen-exit-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
     </style>
     <script>
         (function() {
@@ -277,14 +345,25 @@ if (isset($_GET["success"])) {
         })();
     </script>
 </head>
-<body>
+<body 
+
+<?php echo $fullscreen ? 'class="fullscreen-mode"' : ''; ?>>
+    <?php if (!$fullscreen): ?>
     <?php include 'includes/sidebar.php'; ?>
+    <?php endif; ?>
+    
+    <button class="fullscreen-exit-button" onclick="salirFullscreen()">ESC para salir</button>
     
     <div class="container mt-5">
         <!-- Header -->
         <div class="row mb-4">
             <div class="col-12">
-                <h1><i class="bi bi-wifi"></i> Monitoreo de Dispositivos</h1>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h1><i class="bi bi-wifi"></i> Monitoreo de Dispositivos</h1>
+                    <button class="btn btn-secondary btn-sm" onclick="abrirFullscreen()" title="Pantalla completa para exposición">
+                        <i class="bi bi-fullscreen"></i> Pantalla Completa
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -553,12 +632,16 @@ if (isset($_GET["success"])) {
             const estadoAnterior = statusEl.dataset.estado;
             const htmlAnterior = statusEl.innerHTML;
             
-            // No mostrar estado verificando para auto-actualizaciones (cada 30s)
+            // No mostrar estado verificando para auto-actualizaciones (cada 60s)
             // Solo mostrar spinner si es click manual del usuario
             const esAutoActualizacion = statusEl.dataset.autoActualizando === 'true';
             if (!esAutoActualizacion) {
                 statusEl.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(108, 117, 125, 0.15); color: #666; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;"><span class="spinner-border spinner-border-sm" style="width: 6px; height: 6px;"></span>...</span>';
             }
+            
+            // Marcar timestamp de verificación
+            const ahora = Date.now();
+            statusEl.dataset.ultimaVerificacion = ahora.toString();
             
             // Llamar API
             fetch('api_verificar_ip.php', {
@@ -593,7 +676,9 @@ if (isset($_GET["success"])) {
                     }
                     
                     latenciaEl.innerHTML = formatearLatencia(data.latencia);
-                    fechaEl.textContent = data.fecha_verificacion || 'Ahora';
+                    if (data.fecha_verificacion) {
+                        fechaEl.textContent = data.fecha_verificacion;
+                    }
                 } else {
                     statusEl.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(220, 53, 69, 0.15); color: #dc3545; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;"><i class="bi bi-exclamation-triangle-fill"></i>Error</span>';
                 }
@@ -604,15 +689,21 @@ if (isset($_GET["success"])) {
             });
         }
 
-        // Auto-verificar todos los dispositivos cada 30 segundos
+        // Auto-verificar todos los dispositivos cada 60 segundos
+        // OPTIMIZACIÓN: Solo verifica si cambió el estado, no cada vez
         function verificarTodosAutomaticamente() {
             const statusElements = document.querySelectorAll('[id^="status-"]');
+            let dispositivosAVerificar = 0;
+            
             statusElements.forEach(el => {
                 el.dataset.autoActualizando = 'true';
                 const deviceId = el.id.replace('status-', '');
                 verificarAhora(deviceId);
+                dispositivosAVerificar++;
                 el.dataset.autoActualizando = 'false';
             });
+            
+            console.log(`[Monitoreo] Auto-verificación completada: ${dispositivosAVerificar} dispositivos`);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -682,12 +773,33 @@ if (isset($_GET["success"])) {
                 });
             }
             
-            // Verificar inmediatamente al cargar
-            verificarTodosAutomaticamente();
+            // OPTIMIZACIÓN: Verificar solo dispositivos con estado antiguo (más de 2 minutos)
+            // y después comenzar ciclo automático cada 60 segundos (no 30)
+            verificarDispositivosAniguos();
             
-            // Auto-actualizar cada 30 segundos
-            autoRefreshInterval = setInterval(verificarTodosAutomaticamente, 30000);
+            // Auto-actualizar cada 60 segundos en lugar de 30 (reduce carga 50%)
+            autoRefreshInterval = setInterval(verificarTodosAutomaticamente, 60000);
         });
+
+        // OPTIMIZACIÓN: Nueva función para verificar solo dispositivos con estado viejo
+        function verificarDispositivosAniguos() {
+            const statusElements = document.querySelectorAll('[id^="status-"]');
+            const ahora = Date.now();
+            
+            statusElements.forEach(el => {
+                const deviceId = el.id.replace('status-', '');
+                const fechaEl = document.getElementById('fecha-' + deviceId);
+                
+                // Si el estado es "Nunca" o tiene más de 2 minutos, verificar
+                if (fechaEl.textContent === 'Nunca' || (el.dataset.ultimaVerificacion && 
+                    (ahora - parseInt(el.dataset.ultimaVerificacion)) > 120000)) {
+                    el.dataset.autoActualizando = 'true';
+                    verificarAhora(deviceId);
+                    el.dataset.ultimaVerificacion = ahora.toString();
+                    el.dataset.autoActualizando = 'false';
+                }
+            });
+        }
 
         function mostrarToastExito(mensaje) {
             // Crear elemento toast
@@ -747,6 +859,34 @@ if (isset($_GET["success"])) {
         // Limpiar intervalo al cerrar la página
         window.addEventListener('beforeunload', () => {
             if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+        });
+
+        // Fullscreen functions
+        function abrirFullscreen() {
+            window.location.href = 'monitoreo.php?fullscreen=1';
+        }
+
+        function salirFullscreen() {
+            window.location.href = 'monitoreo.php';
+        }
+
+        // Escuchar tecla ESC para salir del fullscreen
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && document.body.classList.contains('fullscreen-mode')) {
+                salirFullscreen();
+            }
+        });
+
+        // Si está en fullscreen, maximizar cuerpo
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.body.classList.contains('fullscreen-mode')) {
+                // Intentar modo fullscreen de navegador si es posible
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {
+                        // Si no se permite, solo continuar con el modo fullscreen CSS
+                    });
+                }
+            }
         });
     </script>
 </body>

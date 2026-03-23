@@ -42,21 +42,30 @@ try {
     }
     
     // Función para verificar conectividad usando sockets (método principal)
-    function verificarConectividadSocket($ip, $puertos = [80, 443, 22]) {
+    // OPTIMIZACIÓN: Reducir a 2 puertos y timeout a 1 segundo por puerto
+    function verificarConectividadSocket($ip, $puertos = [80, 443]) {
+        $inicio_total = microtime(true);
         foreach ($puertos as $puerto) {
             $inicio = microtime(true);
-            $fp = @fsockopen($ip, $puerto, $errno, $errstr, 2);
+            // Timeout de 1 segundo (no 2) para respuesta más rápida
+            $fp = @fsockopen($ip, $puerto, $errno, $errstr, 1);
             $latencia = (microtime(true) - $inicio) * 1000; // ms
             
             if ($fp) {
                 fclose($fp);
                 return ['online' => true, 'latencia' => round($latencia, 2)];
             }
+            
+            // Si ya pasó más de 2 segundos en total, dejar de intentar
+            if ((microtime(true) - $inicio_total) > 2) {
+                break;
+            }
         }
         return ['online' => false, 'latencia' => null];
     }
     
     // Función para hacer ping como alternativa
+    // OPTIMIZACIÓN: Usar timeout más agresivo (1 segundo máximo)
     function hacerPing($ip) {
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         
@@ -69,10 +78,14 @@ try {
             }
             return ['online' => false, 'latencia' => null];
         } else {
+            // Para macOS y Linux: usar timeout de 1 segundo con -W en milisegundos
+            // En macOS, -W especifica el timeout en milisegundos (1000 = 1 segundo)
             if (PHP_OS === 'Darwin') {
-                $cmd = "ping -c 1 -W 2000 " . escapeshellarg($ip) . " 2>&1";
+                // macOS: -W es timeout en milisegundos
+                $cmd = "timeout 1 ping -c 1 -W 1000 " . escapeshellarg($ip) . " 2>&1";
             } else {
-                $cmd = "ping -c 1 -W 2 " . escapeshellarg($ip) . " 2>&1";
+                // Linux: -W es timeout en milisegundos también
+                $cmd = "timeout 1 ping -c 1 -W 1000 " . escapeshellarg($ip) . " 2>&1";
             }
             $output = @shell_exec($cmd);
             
@@ -90,20 +103,28 @@ try {
     
     // Validar IP
     $latencia = null;
+    $inicio_total = microtime(true);
+    
     if (!validarIP($ip)) {
         $estado = "offline";
     } else {
-        // Intentar primero con socket (más fiable)
+        // Intentar primero con socket (más fiable) - timeout máximo 3 segundos total
         $resultado_socket = verificarConectividadSocket($ip);
         
         if ($resultado_socket['online']) {
             $estado = "online";
             $latencia = $resultado_socket['latencia'];
         } else {
-            // Si socket falla, intentar con ping
-            $resultado_ping = hacerPing($ip);
-            $estado = $resultado_ping['online'] ? "online" : "offline";
-            $latencia = $resultado_ping['latencia'];
+            // Si socket falla, intentar con ping SOLO si no ha pasado 2.5 segundos
+            $tiempo_elapsed = microtime(true) - $inicio_total;
+            if ($tiempo_elapsed < 2.5) {
+                $resultado_ping = hacerPing($ip);
+                $estado = $resultado_ping['online'] ? "online" : "offline";
+                $latencia = $resultado_ping['latencia'];
+            } else {
+                // Si ya pasó demasiado tiempo, asumir offline
+                $estado = "offline";
+            }
         }
     }
     
