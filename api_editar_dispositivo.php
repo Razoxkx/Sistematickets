@@ -24,6 +24,7 @@ $dispositivo_id = $input['dispositivo_id'] ?? '';
 $nombre = trim($input['nombre'] ?? '');
 $descripcion = trim($input['descripcion'] ?? '');
 $ip = trim($input['ip'] ?? '');
+$tipo_dispositivo_id = isset($input['tipo_dispositivo_id']) && !empty($input['tipo_dispositivo_id']) ? (int)$input['tipo_dispositivo_id'] : null;
 
 if (empty($dispositivo_id) || empty($nombre) || empty($ip)) {
     echo json_encode(['success' => false, 'mensaje' => 'Campos requeridos incompletos']);
@@ -55,10 +56,10 @@ try {
     // Actualizar el dispositivo
     $stmt = $conexion->prepare("
         UPDATE dispositivos_monitoreo 
-        SET nombre = ?, descripcion = ?, ip = ?
+        SET nombre = ?, descripcion = ?, ip = ?, tipo_dispositivo_id = ?
         WHERE id = ?
     ");
-    $stmt->execute([$nombre, $descripcion, $ip, $dispositivo_id]);
+    $stmt->execute([$nombre, $descripcion, $ip, $tipo_dispositivo_id, $dispositivo_id]);
     
     echo json_encode(['success' => true, 'mensaje' => 'Dispositivo actualizado correctamente']);
     

@@ -24,16 +24,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear"])) {
     $ip = trim($_POST["ip"] ?? "");
     $nombre = trim($_POST["nombre"] ?? "");
     $descripcion = trim($_POST["descripcion"] ?? "");
+    $tipo_dispositivo_id = isset($_POST["tipo_dispositivo_id"]) && !empty($_POST["tipo_dispositivo_id"]) ? (int)$_POST["tipo_dispositivo_id"] : null;
     
     if (empty($ip) || empty($nombre)) {
         $error = "La IP y el nombre son obligatorios";
     } else {
         try {
             $stmt = $conexion->prepare("
-                INSERT INTO dispositivos_monitoreo (ip, nombre, descripcion, usuario_creador)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO dispositivos_monitoreo (ip, nombre, descripcion, tipo_dispositivo_id, usuario_creador)
+                VALUES (?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$ip, $nombre, $descripcion, $_SESSION["user_id"]]);
+            $stmt->execute([$ip, $nombre, $descripcion, $tipo_dispositivo_id, $_SESSION["user_id"]]);
             
             // Ir a verificar el estado
             header("Location: monitoreo.php?success=creado");
@@ -65,19 +66,71 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar"])) {
     }
 }
 
-// OBTENER DISPOSITIVOS
+// OBTENER TIPOS DE DISPOSITIVOS
+$tipos_dispositivos = [];
 try {
-    $stmt = $conexion->prepare("
-        SELECT d.*, u.username as usuario_nombre
+    $stmt = $conexion->prepare("SELECT id, nombre, color, icono FROM tipos_dispositivos ORDER BY nombre ASC");
+    $stmt->execute();
+    $tipos_dispositivos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error = "Error al obtener tipos de dispositivos: " . $e->getMessage();
+}
+
+// OBTENER DISPOSITIVOS CON JOIN
+$filtro_tipo = isset($_GET['tipo']) && !empty($_GET['tipo']) ? (int)$_GET['tipo'] : null;
+$filtro_estado = isset($_GET['estado']) && !empty($_GET['estado']) ? trim($_GET['estado']) : null;
+
+try {
+    $query = "
+        SELECT d.*, u.username as usuario_nombre, t.nombre as tipo_nombre, t.color, t.icono
         FROM dispositivos_monitoreo d
         JOIN users u ON d.usuario_creador = u.id
+        LEFT JOIN tipos_dispositivos t ON d.tipo_dispositivo_id = t.id
         WHERE d.activo = 1
-        ORDER BY d.fecha_creacion DESC
-    ");
-    $stmt->execute();
+    ";
+    
+    $params = [];
+    if ($filtro_tipo) {
+        $query .= " AND d.tipo_dispositivo_id = ?";
+        $params[] = $filtro_tipo;
+    }
+    
+    if ($filtro_estado) {
+        $query .= " AND d.estado = ?";
+        $params[] = $filtro_estado;
+    }
+    
+    $query .= " ORDER BY d.fecha_creacion DESC";
+    
+    $stmt = $conexion->prepare($query);
+    $stmt->execute($params);
     $dispositivos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error = "Error al obtener dispositivos: " . $e->getMessage();
+}
+
+// CALCULAR ESTADÍSTICAS POR TIPO
+$estadisticas_tipo = [];
+try {
+    $stmt = $conexion->prepare("
+        SELECT 
+            COALESCE(t.id, 0) as tipo_id,
+            COALESCE(t.nombre, 'Sin clasificar') as tipo_nombre,
+            COALESCE(t.color, '#6c757d') as color,
+            COALESCE(t.icono, 'bi-device-hdd') as icono,
+            COUNT(d.id) as total,
+            SUM(CASE WHEN d.estado = 'online' THEN 1 ELSE 0 END) as online_count,
+            SUM(CASE WHEN d.estado = 'offline' THEN 1 ELSE 0 END) as offline_count
+        FROM dispositivos_monitoreo d
+        LEFT JOIN tipos_dispositivos t ON d.tipo_dispositivo_id = t.id
+        WHERE d.activo = 1
+        GROUP BY t.id, t.nombre, t.color, t.icono
+        ORDER BY t.nombre ASC
+    ");
+    $stmt->execute();
+    $estadisticas_tipo = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error = "Error al obtener estadísticas: " . $e->getMessage();
 }
 
 // Detectar modo fullscreen
@@ -367,12 +420,27 @@ if (isset($_GET["success"])) {
             </div>
         </div>
 
-        <!-- Botón Agregar -->
+        <!-- Botón Agregar + Filtro por Tipo (Dropdown) -->
         <div class="row mb-4">
             <div class="col-12">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
-                    <i class="bi bi-plus-circle"></i> Agregar Dispositivo
-                </button>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
+                        <i class="bi bi-plus-circle"></i> Agregar Dispositivo
+                    </button>
+                    
+                    <?php if (!empty($tipos_dispositivos)): ?>
+                    <select class="form-select" style="max-width: 250px;" onchange="if(this.value) location.href='monitoreo.php?tipo=' + this.value; else location.href='monitoreo.php';">
+                        <option value="">
+                            <i class="bi bi-list"></i> Todos los dispositivos
+                        </option>
+                        <?php foreach ($tipos_dispositivos as $tipo): ?>
+                        <option value="<?php echo $tipo['id']; ?>" <?php echo $filtro_tipo == $tipo['id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($tipo['nombre']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
@@ -391,25 +459,38 @@ if (isset($_GET["success"])) {
             </div>
         <?php endif; ?>
 
-        <!-- Estadísticas Dashboard -->
-        <?php if (!empty($dispositivos)): ?>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px;">
-            <?php
-            $total = count($dispositivos);
-            $online_count = count(array_filter($dispositivos, fn($d) => $d['estado'] === 'online'));
-            $offline_count = $total - $online_count;
-            ?>
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size: 2rem; font-weight: 800; margin-bottom: 5px;"><?php echo $total; ?></div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">TOTAL</div>
-            </div>
-            <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size: 2rem; font-weight: 800; margin-bottom: 5px;"><?php echo $online_count; ?></div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">ONLINE</div>
-            </div>
-            <div style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size: 2rem; font-weight: 800; margin-bottom: 5px;"><?php echo $offline_count; ?></div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">OFFLINE</div>
+        <!-- Estadísticas por Tipo de Dispositivo -->
+        <?php if (!empty($estadisticas_tipo)): ?>
+        <div class="mb-4">
+            <h5 style="color: #667eea; font-weight: 700; margin-bottom: 15px;">
+                <i class="bi bi-bar-chart"></i> Estadísticas por Tipo de Dispositivo
+            </h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                <?php foreach ($estadisticas_tipo as $stat): ?>
+                <div style="background: #1e1e1e; border: 2px solid <?php echo $stat['color']; ?>; padding: 16px; border-radius: 10px; cursor: pointer;" onclick="location.href='monitoreo.php?tipo=<?php echo $stat['tipo_id']; ?>'">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <i class="bi <?php echo htmlspecialchars($stat['icono']); ?>" style="font-size: 1.5rem; color: <?php echo $stat['color']; ?>;"></i>
+                        <div>
+                            <div style="font-weight: 700; color: #e0e0e0;">
+                                <?php echo htmlspecialchars($stat['tipo_nombre']); ?>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #999;">
+                                Total: <?php echo $stat['total']; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <div style="flex: 1; padding: 10px; background: #2a4a2a; border-radius: 6px; text-align: center; cursor: pointer; transition: all 0.2s;" onclick="event.stopPropagation(); location.href='monitoreo.php?tipo=<?php echo $stat['tipo_id']; ?>&estado=online'" onmouseover="this.style.background='#3a5a3a'" onmouseout="this.style.background='#2a4a2a'">
+                            <div style="font-weight: 700; color: #28a745; font-size: 1.1rem;"><?php echo $stat['online_count']; ?></div>
+                            <div style="font-size: 0.75rem; color: #28a745;">Online</div>
+                        </div>
+                        <div style="flex: 1; padding: 10px; background: #4a2a2a; border-radius: 6px; text-align: center; cursor: pointer; transition: all 0.2s;" onclick="event.stopPropagation(); location.href='monitoreo.php?tipo=<?php echo $stat['tipo_id']; ?>&estado=offline'" onmouseover="this.style.background='#5a3a3a'" onmouseout="this.style.background='#4a2a2a'">
+                            <div style="font-weight: 700; color: #dc3545; font-size: 1.1rem;"><?php echo $stat['offline_count']; ?></div>
+                            <div style="font-size: 0.75rem; color: #dc3545;">Offline</div>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
             </div>
         </div>
         <?php endif; ?>
@@ -428,6 +509,16 @@ if (isset($_GET["success"])) {
                     <div class="card dispositivo-card h-100" id="device-<?php echo $dispositivo["id"]; ?>" style="border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-radius: 12px; cursor: pointer;" onclick="abrirEditarDispositivo(<?php echo htmlspecialchars(json_encode($dispositivo), ENT_QUOTES, 'UTF-8'); ?>)">
                         <!-- Body -->
                         <div class="card-body" style="padding: 18px;">
+                            <!-- Tipo Dispositivo Badge -->
+                            <?php if ($dispositivo['tipo_nombre']): ?>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; background: color-mix(in srgb, <?php echo htmlspecialchars($dispositivo['color']); ?> 15%, transparent); padding: 8px 12px; border-radius: 8px; border-left: 3px solid <?php echo htmlspecialchars($dispositivo['color']); ?>;">
+                                <i class="bi <?php echo htmlspecialchars($dispositivo['icono']); ?>" style="font-size: 1.1rem; color: <?php echo htmlspecialchars($dispositivo['color']); ?>;"></i>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: <?php echo htmlspecialchars($dispositivo['color']); ?>;">
+                                    <?php echo htmlspecialchars($dispositivo['tipo_nombre']); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+                            
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                                 <div style="flex: 1;">
                                     <h5 class="card-title mb-1" style="font-size: 1rem; font-weight: 700;"><?php echo htmlspecialchars($dispositivo["nombre"]); ?></h5>
@@ -506,6 +597,18 @@ if (isset($_GET["success"])) {
                             <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Router Principal" required>
                         </div>
                         <div class="mb-3">
+                            <label for="tipo_dispositivo_id" class="form-label">Tipo de Dispositivo</label>
+                            <select class="form-select" id="tipo_dispositivo_id" name="tipo_dispositivo_id">
+                                <option value="">-- Sin clasificar --</option>
+                                <?php foreach ($tipos_dispositivos as $tipo): ?>
+                                <option value="<?php echo $tipo['id']; ?>">
+                                    <i class="bi <?php echo htmlspecialchars($tipo['icono']); ?>"></i>
+                                    <?php echo htmlspecialchars($tipo['nombre']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label for="descripcion" class="form-label">Descripción (Opcional)</label>
                             <textarea class="form-control" id="descripcion" name="descripcion" rows="3" placeholder="Gateway principal de la red..."></textarea>
                         </div>
@@ -543,6 +646,18 @@ if (isset($_GET["success"])) {
                         <div class="mb-3">
                             <label for="editarNombre" class="form-label">Nombre del Dispositivo *</label>
                             <input type="text" class="form-control" id="editarNombre" name="nombre" placeholder="Router Principal" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editarTipoDispositivo" class="form-label">Tipo de Dispositivo</label>
+                            <select class="form-select" id="editarTipoDispositivo" name="tipo_dispositivo_id">
+                                <option value="">-- Sin clasificar --</option>
+                                <?php foreach ($tipos_dispositivos as $tipo): ?>
+                                <option value="<?php echo $tipo['id']; ?>">
+                                    <i class="bi <?php echo htmlspecialchars($tipo['icono']); ?>"></i>
+                                    <?php echo htmlspecialchars($tipo['nombre']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="editarDescripcion" class="form-label">Descripción (Opcional)</label>
@@ -603,6 +718,7 @@ if (isset($_GET["success"])) {
             document.getElementById('editarIP').value = dispositivo.ip;
             document.getElementById('editarNombre').value = dispositivo.nombre;
             document.getElementById('editarDescripcion').value = dispositivo.descripcion || '';
+            document.getElementById('editarTipoDispositivo').value = dispositivo.tipo_dispositivo_id || '';
             document.getElementById('mensajeEditarError').classList.add('d-none');
             modalEditar.show();
         }
@@ -717,6 +833,7 @@ if (isset($_GET["success"])) {
                     const nombre = document.getElementById('editarNombre').value;
                     const descripcion = document.getElementById('editarDescripcion').value;
                     const ip = document.getElementById('editarIP').value;
+                    const tipo_dispositivo_id = document.getElementById('editarTipoDispositivo').value || null;
                     
                     const btnActualizar = document.getElementById('btnActualizarDispositivo');
                     const estadoOriginal = btnActualizar.innerHTML;
@@ -733,30 +850,22 @@ if (isset($_GET["success"])) {
                                 dispositivo_id,
                                 nombre,
                                 descripcion,
-                                ip
+                                ip,
+                                tipo_dispositivo_id
                             })
                         });
                         
                         const data = await response.json();
                         
                         if (data.success) {
-                            // Actualizar la tarjeta en el DOM sin recargar
-                            const card = document.querySelector(`[id="device-${dispositivo_id}"]`);
-                            if (card) {
-                                const nombreEl = card.querySelector('.card-title');
-                                const ipEl = card.querySelector('small.text-muted');
-                                
-                                if (nombreEl) nombreEl.textContent = nombre;
-                                if (ipEl) ipEl.textContent = ip;
-                            }
-                            
                             modalEditar.hide();
                             
-                            // Mostrar notificación con toast
+                            // Mostrar notificación y recargar la página después de 0.5 segundos
                             mostrarToastExito('✅ Dispositivo actualizado exitosamente');
                             
-                            btnActualizar.disabled = false;
-                            btnActualizar.innerHTML = estadoOriginal;
+                            setTimeout(() => {
+                                location.reload();
+                            }, 500);
                         } else {
                             document.getElementById('mensajeEditarError').textContent = data.mensaje || 'Error al actualizar dispositivo';
                             document.getElementById('mensajeEditarError').classList.remove('d-none');
