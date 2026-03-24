@@ -40,10 +40,8 @@ try {
             nombre VARCHAR(100) NOT NULL UNIQUE,
             color VARCHAR(7) NOT NULL DEFAULT '#6c757d',
             icono VARCHAR(50) NOT NULL DEFAULT 'bi-device-hdd',
-            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            CHARSET=utf8mb4,
-            COLLATE=utf8mb4_unicode_ci
-        ) ENGINE=InnoDB";
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
         $conexion->exec($sql);
         $log[] = "✅ Tabla 'tipos_dispositivos' creada correctamente.";
         
