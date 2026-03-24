@@ -413,9 +413,16 @@ if (isset($_GET["success"])) {
             <div class="col-12">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <h1><i class="bi bi-wifi"></i> Monitoreo de Dispositivos</h1>
-                    <button class="btn btn-secondary btn-sm" onclick="abrirFullscreen()" title="Pantalla completa para exposición">
-                        <i class="bi bi-fullscreen"></i> Pantalla Completa
-                    </button>
+                    <div style="display: flex; gap: 8px;">
+                        <?php if ($_SESSION["role"] === "admin"): ?>
+                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalGestionarTipos" title="Gestionar tipos de dispositivos">
+                            <i class="bi bi-tag"></i> Tipos
+                        </button>
+                        <?php endif; ?>
+                        <button class="btn btn-secondary btn-sm" onclick="abrirFullscreen()" title="Pantalla completa para exposición">
+                            <i class="bi bi-fullscreen"></i> Pantalla Completa
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -695,6 +702,97 @@ if (isset($_GET["success"])) {
                         <input type="hidden" name="accion_eliminar" value="1">
                         <button type="submit" class="btn btn-danger">Eliminar</button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestionar Tipos de Dispositivos -->
+    <div class="modal fade" id="modalGestionarTipos" tabindex="-1" size="lg">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-tag"></i> Gestionar Tipos de Dispositivos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                    <!-- Botón Agregar -->
+                    <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#modalAgregarTipo" onclick="limpiarFormularioTipo()">
+                        <i class="bi bi-plus-circle"></i> Agregar Nuevo Tipo
+                    </button>
+
+                    <!-- Alertas -->
+                    <div id="alerta-tipos" class="alert d-none" role="alert"></div>
+
+                    <!-- Lista de Tipos -->
+                    <div id="lista-tipos" style="display: grid; gap: 12px;">
+                        <p class="text-muted"><i class="bi bi-hourglass-split"></i> Cargando...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar/Editar Tipo -->
+    <div class="modal fade" id="modalAgregarTipo" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle"></i> <span id="titulo-form-tipo">Agregar Tipo de Dispositivo</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAgregarTipo">
+                        <input type="hidden" id="tipoIdEditar" name="tipo_id" value="">
+                        <div class="mb-3">
+                            <label for="nombreTipo" class="form-label">Nombre *</label>
+                            <input type="text" class="form-control" id="nombreTipo" name="nombre" placeholder="Ej: Switch, NVR, etc." required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="colorTipo" class="form-label">Color *</label>
+                            <input type="color" class="form-control form-control-color" id="colorTipo" name="color" value="#007bff" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="iconoTipo" class="form-label">Icono *</label>
+                            <input type="text" class="form-control" id="iconoTipo" name="icono" placeholder="Ej: bi-wifi, bi-camera-video" required>
+                            <small class="text-muted">Usa iconos de <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a></small>
+                        </div>
+                        <div id="mensajeTipoError" class="alert alert-danger d-none" role="alert"></div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Eliminar Tipo -->
+    <div class="modal fade" id="modalEliminarTipo" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle"></i> Eliminar Tipo de Dispositivo
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro que desea eliminar el tipo <strong id="nombreAEliminarTipo"></strong>?</p>
+                    <p class="text-muted small">⚠️ Los dispositivos asociados quedarán sin clasificar.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmarEliminarTipo">Eliminar</button>
                 </div>
             </div>
         </div>
@@ -995,6 +1093,151 @@ if (isset($_GET["success"])) {
                         // Si no se permite, solo continuar con el modo fullscreen CSS
                     });
                 }
+            }
+        });
+
+        // ========== GESTIONAR TIPOS DE DISPOSITIVOS ==========
+        const modalGestionarTipos = new bootstrap.Modal(document.getElementById('modalGestionarTipos'));
+        const modalAgregarTipo = new bootstrap.Modal(document.getElementById('modalAgregarTipo'));
+        const modalEliminarTipo = new bootstrap.Modal(document.getElementById('modalEliminarTipo'));
+        let tipoIdAEliminar = null;
+
+        // Cargar tipos cuando se abre el modal
+        document.getElementById('modalGestionarTipos').addEventListener('show.bs.modal', cargarTipos);
+
+        async function cargarTipos() {
+            const listaTipos = document.getElementById('lista-tipos');
+            const alertaTipos = document.getElementById('alerta-tipos');
+            alertaTipos.classList.add('d-none');
+
+            try {
+                const response = await fetch('api_obtener_tipos_dispositivos.php');
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.tipos.length === 0) {
+                        listaTipos.innerHTML = '<p class="text-muted">No hay tipos de dispositivos creados.</p>';
+                    } else {
+                        listaTipos.innerHTML = data.tipos.map(tipo => `
+                            <div style="background: #1e1e1e; border: 2px solid ${tipo.color}; padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 15px; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                                    <i class="bi ${tipo.icono}" style="font-size: 2rem; color: ${tipo.color};"></i>
+                                    <div>
+                                        <div style="font-weight: 700; color: #e0e0e0; margin-bottom: 5px;">${tipo.nombre}</div>
+                                        <div style="font-size: 0.85rem; color: #999;">
+                                            <code>${tipo.color}</code> • <code>${tipo.icono}</code>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="btn btn-sm btn-warning" onclick="abrirEditarTipo(${JSON.stringify(tipo).replace(/"/g, '&quot;')})">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="abrirEliminarTipo(${tipo.id}, '${tipo.nombre}')">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    alertaTipos.innerHTML = 'Error al cargar tipos: ' + (data.mensaje || '');
+                    alertaTipos.classList.remove('d-none');
+                    alertaTipos.classList.add('alert-danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alertaTipos.innerHTML = 'Error al cargar tipos: ' + error.message;
+                alertaTipos.classList.remove('d-none');
+                alertaTipos.classList.add('alert-danger');
+            }
+        }
+
+        function limpiarFormularioTipo() {
+            document.getElementById('tipoIdEditar').value = '';
+            document.getElementById('formAgregarTipo').reset();
+            document.getElementById('colorTipo').value = '#007bff';
+            document.getElementById('titulo-form-tipo').innerHTML = 'Agregar Tipo de Dispositivo';
+            document.getElementById('mensajeTipoError').classList.add('d-none');
+        }
+
+        function abrirEditarTipo(tipo) {
+            document.getElementById('tipoIdEditar').value = tipo.id;
+            document.getElementById('nombreTipo').value = tipo.nombre;
+            document.getElementById('colorTipo').value = tipo.color;
+            document.getElementById('iconoTipo').value = tipo.icono;
+            document.getElementById('titulo-form-tipo').innerHTML = 'Editar Tipo de Dispositivo';
+            document.getElementById('mensajeTipoError').classList.add('d-none');
+
+            // Cerrar el modal anterior y abrir el de agregar/editar
+            modalGestionarTipos.hide();
+            setTimeout(() => modalAgregarTipo.show(), 200);
+        }
+
+        document.getElementById('formAgregarTipo').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const tipoId = document.getElementById('tipoIdEditar').value;
+            const nombre = document.getElementById('nombreTipo').value;
+            const color = document.getElementById('colorTipo').value;
+            const icono = document.getElementById('iconoTipo').value;
+
+            const endpoint = tipoId ? 'api_editar_tipo_dispositivo.php' : 'api_crear_tipo_dispositivo.php';
+            const body = tipoId 
+                ? { tipo_id: tipoId, nombre, color, icono }
+                : { nombre, color, icono };
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    modalAgregarTipo.hide();
+                    cargarTipos();
+                    setTimeout(() => modalGestionarTipos.show(), 200);
+                    mostrarToastExito('✅ ' + (tipoId ? 'Tipo actualizado' : 'Tipo creado') + ' exitosamente');
+                } else {
+                    document.getElementById('mensajeTipoError').innerHTML = data.mensaje || 'Error';
+                    document.getElementById('mensajeTipoError').classList.remove('d-none');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('mensajeTipoError').innerHTML = 'Error al guardar tipo';
+                document.getElementById('mensajeTipoError').classList.remove('d-none');
+            }
+        });
+
+        function abrirEliminarTipo(tipoId, tipoNombre) {
+            tipoIdAEliminar = tipoId;
+            document.getElementById('nombreAEliminarTipo').textContent = tipoNombre;
+            modalEliminarTipo.show();
+        }
+
+        document.getElementById('btnConfirmarEliminarTipo').addEventListener('click', async function() {
+            try {
+                const response = await fetch('api_eliminar_tipo_dispositivo.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo_id: tipoIdAEliminar })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    modalEliminarTipo.hide();
+                    cargarTipos();
+                    mostrarToastExito('✅ Tipo eliminado exitosamente');
+                } else {
+                    alert('Error: ' + (data.mensaje || ''));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar tipo');
             }
         });
     </script>
