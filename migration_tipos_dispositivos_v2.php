@@ -27,15 +27,58 @@ $errores = [];
 html_header();
 
 try {
-    $log[] = "🔄 Iniciando migración de tipos de dispositivos...";
+    $log[] = "🔄 Iniciando migración completa de tipos de dispositivos...";
     
-    // PASO 1: Verificar que existe la tabla tipos_dispositivos
+    // PASO 1: Crear tabla tipos_dispositivos (si no existe)
     $log[] = "✓ Verificando tabla 'tipos_dispositivos'...";
     $stmt = $conexion->query("SHOW TABLES LIKE 'tipos_dispositivos'");
+    
     if ($stmt->rowCount() === 0) {
-        throw new Exception("❌ La tabla 'tipos_dispositivos' no existe. Debe crearse antes de ejecutar esta migración.");
+        $log[] = "→ Tabla no existe. Creando...";
+        $sql = "CREATE TABLE tipos_dispositivos (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nombre VARCHAR(100) NOT NULL UNIQUE,
+            color VARCHAR(7) NOT NULL DEFAULT '#6c757d',
+            icono VARCHAR(50) NOT NULL DEFAULT 'bi-device-hdd',
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CHARSET=utf8mb4,
+            COLLATE=utf8mb4_unicode_ci
+        ) ENGINE=InnoDB";
+        $conexion->exec($sql);
+        $log[] = "✅ Tabla 'tipos_dispositivos' creada correctamente.";
+        
+        // Insertar datos predefinidos
+        $log[] = "→ Insertando tipos de dispositivos predefinidos...";
+        $sql = "INSERT INTO tipos_dispositivos (nombre, color, icono) VALUES 
+            ('Switch', '#007bff', 'bi-diagram-3'),
+            ('NVR', '#e83e8c', 'bi-camera-video'),
+            ('Access Point', '#17a2b8', 'bi-wifi'),
+            ('Reloj Control', '#ffc107', 'bi-clock'),
+            ('Máquina Virtual', '#6610f2', 'bi-cpu'),
+            ('Otro', '#6c757d', 'bi-device-hdd')";
+        $conexion->exec($sql);
+        $log[] = "✅ Datos predefinidos insertados (6 tipos de dispositivos).";
+    } else {
+        $log[] = "✅ Tabla 'tipos_dispositivos' ya existe.";
+        
+        // Verificar si tiene datos
+        $stmt2 = $conexion->query("SELECT COUNT(*) as cnt FROM tipos_dispositivos");
+        $row = $stmt2->fetch(PDO::FETCH_ASSOC);
+        if ($row['cnt'] > 0) {
+            $log[] = "ℹ️ La tabla ya contiene " . $row['cnt'] . " tipo(s) de dispositivo.";
+        } else {
+            $log[] = "→ Insertando tipos de dispositivos predefinidos...";
+            $sql = "INSERT INTO tipos_dispositivos (nombre, color, icono) VALUES 
+                ('Switch', '#007bff', 'bi-diagram-3'),
+                ('NVR', '#e83e8c', 'bi-camera-video'),
+                ('Access Point', '#17a2b8', 'bi-wifi'),
+                ('Reloj Control', '#ffc107', 'bi-clock'),
+                ('Máquina Virtual', '#6610f2', 'bi-cpu'),
+                ('Otro', '#6c757d', 'bi-device-hdd')";
+            $conexion->exec($sql);
+            $log[] = "✅ Datos predefinidos insertados.";
+        }
     }
-    $log[] = "✅ Tabla 'tipos_dispositivos' encontrada.";
     
     // PASO 2: Verificar tabla dispositivos_monitoreo
     $log[] = "✓ Verificando tabla 'dispositivos_monitoreo'...";
