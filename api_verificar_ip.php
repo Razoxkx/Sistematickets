@@ -42,26 +42,43 @@ try {
     }
     
     // Función para verificar conectividad usando sockets (método principal)
-    // OPTIMIZACIÓN: Reducir a 2 puertos y timeout a 1 segundo por puerto
-    function verificarConectividadSocket($ip, $puertos = [80, 443]) {
+    // VERIFICACIÓN MEJORADA: Intenta múltiples puertos comunes (priorizado por velocidad)
+    // Puertos: HTTP(80), HTTPS(443), SSH(22), MySQL(3306), PostgreSQL(5432), RDP(3389), 
+    // NetBIOS(139), SMB(445), HTTP alternativo(8080), VNC(5900)
+    function verificarConectividadSocket($ip, $puertos = [80, 443, 22, 3306, 5432, 3389, 139, 445, 8080, 5900]) {
         $inicio_total = microtime(true);
+        $latencia_minima = null;
+        $puerto_exitoso = null;
+        
         foreach ($puertos as $puerto) {
-            $inicio = microtime(true);
-            // Timeout de 1 segundo (no 2) para respuesta más rápida
+            $inicio_puerto = microtime(true);
+            // Timeout de 1 segundo por intento de puerto
             $fp = @fsockopen($ip, $puerto, $errno, $errstr, 1);
-            $latencia = (microtime(true) - $inicio) * 1000; // ms
+            $latencia = (microtime(true) - $inicio_puerto) * 1000; // ms
             
             if ($fp) {
                 fclose($fp);
-                return ['online' => true, 'latencia' => round($latencia, 2)];
+                // Registrar la latencia más baja
+                if ($latencia_minima === null || $latencia < $latencia_minima) {
+                    $latencia_minima = $latencia;
+                    $puerto_exitoso = $puerto;
+                }
+                // No retornar inmediatamente, continuar otro puerto para mejor latencia
             }
             
-            // Si ya pasó más de 2 segundos en total, dejar de intentar
-            if ((microtime(true) - $inicio_total) > 2) {
+            // Control de tiempo total: máximo 3 segundos para toda la secuencia
+            $tiempo_elapsed = microtime(true) - $inicio_total;
+            if ($tiempo_elapsed > 3) {
                 break;
             }
         }
-        return ['online' => false, 'latencia' => null];
+        
+        // Si encontramos al menos un puerto abierto, reportar online
+        if ($latencia_minima !== null) {
+            return ['online' => true, 'latencia' => round($latencia_minima, 2), 'puerto' => $puerto_exitoso];
+        }
+        
+        return ['online' => false, 'latencia' => null, 'puerto' => null];
     }
     
     // Función para hacer ping como alternativa
