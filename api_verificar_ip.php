@@ -65,7 +65,6 @@ try {
     }
     
     // Función para hacer ping como alternativa
-    // OPTIMIZACIÓN: Usar timeout más agresivo (1 segundo máximo)
     function hacerPing($ip) {
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         
@@ -78,23 +77,39 @@ try {
             }
             return ['online' => false, 'latencia' => null];
         } else {
-            // Para macOS y Linux: usar timeout de 1 segundo con -W en milisegundos
-            // En macOS, -W especifica el timeout en milisegundos (1000 = 1 segundo)
-            if (PHP_OS === 'Darwin') {
-                // macOS: -W es timeout en milisegundos
-                $cmd = "timeout 1 ping -c 1 -W 1000 " . escapeshellarg($ip) . " 2>&1";
-            } else {
-                // Linux: -W es timeout en milisegundos también
-                $cmd = "timeout 1 ping -c 1 -W 1000 " . escapeshellarg($ip) . " 2>&1";
+            // Para macOS y Linux: usar la ruta absoluta de ping
+            $ping_path = '/bin/ping';
+            if (!file_exists($ping_path)) {
+                $ping_path = '/sbin/ping'; // En algunos sistemas está aquí
             }
+            
+            // Si no existe en ambos lugares, no hay ping disponible
+            if (!file_exists($ping_path)) {
+                return ['online' => false, 'latencia' => null];
+            }
+            
+            $cmd = $ping_path . " -c 1 -W 2000 " . escapeshellarg($ip) . " 2>&1";
+            
+            $inicio = microtime(true);
             $output = @shell_exec($cmd);
+            $tiempo_real = (microtime(true) - $inicio) * 1000;
             
-            if (preg_match('/time=(\d+\.?\d*)\s*ms/', $output, $matches)) {
-                return ['online' => true, 'latencia' => (float)$matches[1]];
-            }
-            
-            if (preg_match('/bytes from|bytes=/', $output)) {
-                return ['online' => true, 'latencia' => null];
+            // Si obtenemos salida y no es timeout, está online
+            if (!empty($output)) {
+                // Buscar la latencia en diferentes formatos
+                if (preg_match('/time[=]?(\d+\.?\d*)\s*ms/', $output, $matches)) {
+                    return ['online' => true, 'latencia' => (float)$matches[1]];
+                }
+                
+                // Si contiene "bytes from" o "bytes=", definitivamente está online
+                if (preg_match('/(bytes from|bytes=|from .+ bytes)/', $output)) {
+                    return ['online' => true, 'latencia' => round($tiempo_real, 2)];
+                }
+                
+                // Si tiene "100% packet loss" está offline
+                if (preg_match('/100\.?\d*%\s+packet loss/', $output)) {
+                    return ['online' => false, 'latencia' => null];
+                }
             }
             
             return ['online' => false, 'latencia' => null];
@@ -108,19 +123,19 @@ try {
     if (!validarIP($ip)) {
         $estado = "offline";
     } else {
-        // Intentar primero con socket (más fiable) - timeout máximo 3 segundos total
-        $resultado_socket = verificarConectividadSocket($ip);
+        // Intentar primero con ping (más confiable para dispositivos de red)
+        $resultado_ping = hacerPing($ip);
         
-        if ($resultado_socket['online']) {
+        if ($resultado_ping['online']) {
             $estado = "online";
-            $latencia = $resultado_socket['latencia'];
+            $latencia = $resultado_ping['latencia'];
         } else {
-            // Si socket falla, intentar con ping SOLO si no ha pasado 2.5 segundos
+            // Si ping falla, intentar con socket SOLO si no ha pasado 4 segundos
             $tiempo_elapsed = microtime(true) - $inicio_total;
-            if ($tiempo_elapsed < 2.5) {
-                $resultado_ping = hacerPing($ip);
-                $estado = $resultado_ping['online'] ? "online" : "offline";
-                $latencia = $resultado_ping['latencia'];
+            if ($tiempo_elapsed < 4) {
+                $resultado_socket = verificarConectividadSocket($ip);
+                $estado = $resultado_socket['online'] ? "online" : "offline";
+                $latencia = $resultado_socket['latencia'];
             } else {
                 // Si ya pasó demasiado tiempo, asumir offline
                 $estado = "offline";

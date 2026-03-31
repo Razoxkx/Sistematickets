@@ -379,14 +379,14 @@ require_once 'config.php';
         </li>
         <?php endif; ?>
 
-        <?php if (in_array(($_SESSION["role"] ?? ""), ["admin", "tisupport"])): ?>
-        <li class="sidebar-nav-item">
-            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'monitoreo.php') ? 'active' : ''; ?>" href="monitoreo.php" title="Monitoreo">
-                <span class="sidebar-nav-icon"><i class="bi bi-wifi"></i></span>
-                <span class="sidebar-nav-text">Monitoreo</span>
-            </a>
-        </li>
-        <?php endif; ?>
+            <!-- <//?php if (in_array(($_SESSION["role"] ?? ""), ["admin", "tisupport"])): ?>
+            <li class="sidebar-nav-item">
+                <a class="sidebar-nav-link <//?php echo (basename($_SERVER['PHP_SELF']) === 'monitoreo.php') ? 'active' : ''; ?>" href="monitoreo.php" title="Monitoreo">
+                    <span class="sidebar-nav-icon"><i class="bi bi-wifi"></i></span>
+                    <span class="sidebar-nav-text">Monitoreo</span>
+                </a>
+            </li>
+            <//?php endif; ?> -->
 
         <?php if (in_array($_SESSION["role"] ?? "", ['admin', 'tisupport'])): ?>
         <li class="sidebar-nav-item">
