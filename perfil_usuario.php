@@ -105,8 +105,10 @@ try {
         
         // SECCIÓN: ACTIVOS
         elseif ($seccion === "activos") {
-            $where = "a.propietario = ?";
-            $params = [$usuario_busca];
+            // Buscar activos donde propietario coincide O donde ubicacion contenga el username (usuarios migrados desde contacto)
+            $where = "(a.propietario = ? OR a.ubicacion LIKE ?)";
+            $ubicacion_param = '%' . $usuario_busca . '%';
+            $params = [$usuario_busca, $ubicacion_param];
             
             if (!empty($busqueda)) {
                 $where .= " AND (a.rfk LIKE ? OR a.titulo LIKE ? OR a.descripcion LIKE ?)";
@@ -117,13 +119,13 @@ try {
             }
             
             // Contar total
-            $stmt_count = $conexion->prepare("SELECT COUNT(*) as total FROM activos a WHERE " . $where);
+            $stmt_count = $conexion->prepare("SELECT COUNT(DISTINCT a.id) as total FROM activos a WHERE " . $where);
             $stmt_count->execute($params);
             $total_items = $stmt_count->fetch(PDO::FETCH_ASSOC)['total'];
             
             // Obtener activos
             $stmt = $conexion->prepare("
-                SELECT a.*
+                SELECT DISTINCT a.*
                 FROM activos a
                 WHERE " . $where . "
                 ORDER BY a.rfk ASC
