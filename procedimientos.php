@@ -46,10 +46,10 @@ try {
     
     // Obtener procedimientos paginados
     $stmt = $conexion->prepare("
-        SELECT p.*, u.username as autor_nombre,
+        SELECT p.*, COALESCE(u.username, 'Usuario eliminado') as autor_nombre,
                (SELECT COUNT(*) FROM menciones_procedimientos WHERE procedimiento_id = p.id) as total_menciones
         FROM procedimientos p
-        JOIN users u ON p.usuario_creador = u.id
+        LEFT JOIN users u ON p.usuario_creador = u.id
         WHERE $where
         ORDER BY p.fecha_creacion DESC
         LIMIT " . intval($procedimientos_por_pagina) . " OFFSET " . intval($offset) . "
