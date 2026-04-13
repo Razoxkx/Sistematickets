@@ -62,9 +62,9 @@ try {
     }
     
     $stmt = $conexion->prepare("
-        SELECT c.*, u.username as creador_nombre
+        SELECT c.*, COALESCE(u.username, 'Usuario eliminado') as creador_nombre
         FROM cuentas_servicio c
-        JOIN users u ON c.usuario_creador = u.id
+        LEFT JOIN users u ON c.usuario_creador = u.id
         WHERE " . $where . "
         ORDER BY c.fecha_creacion DESC
     ");
