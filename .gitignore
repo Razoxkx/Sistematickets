@@ -64,3 +64,4 @@ cache/
 # ========================================
 uploads/temp/
 uploads/cache/
+api_backups.php

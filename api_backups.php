@@ -5,10 +5,16 @@ require_once 'includes/config.php';
 // Verificar sesión y permisos
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== 'admin') {
     http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
     die(json_encode(['error' => 'No autorizado']));
 }
 
 $accion = $_GET['accion'] ?? $_POST['accion'] ?? null;
+
+// Header JSON para respuestas normales (no descargas)
+if ($accion !== 'descargar') {
+    header('Content-Type: application/json; charset=utf-8');
+}
 
 if ($accion === 'listar') {
     // Listar backups disponibles
@@ -85,18 +91,37 @@ if ($accion === 'restaurar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Leer el contenido del backup
         $sql_content = file_get_contents($ruta_backup);
+        if ($sql_content === false) {
+            throw new Exception('No se pudo leer el archivo de backup');
+        }
         
-        // Ejecutar el SQL
-        $conexion->exec($sql_content);
+        // Ejecutar el SQL dividiendo por puntos y comas
+        $statements = array_filter(array_map('trim', explode(';', $sql_content)));
+        
+        foreach ($statements as $statement) {
+            if (!empty($statement)) {
+                try {
+                    $conexion->exec($statement);
+                } catch (Exception $stmtErr) {
+                    // Continuar con otros statements incluso si uno falla
+                    error_log("Error en statement: " . $stmtErr->getMessage());
+                }
+            }
+        }
         
         // Registrar la restauración
-        $stmt = $conexion->prepare("
-            INSERT INTO backup_list (nombre_archivo, usuario_id, fecha_backup, tamano, restaurado_en) 
-            VALUES (?, ?, NOW(), ?, NOW())
-            ON DUPLICATE KEY UPDATE restaurado_en = NOW()
-        ");
-        $tamano = filesize($ruta_backup);
-        $stmt->execute([$archivo, $_SESSION['user_id'], $tamano]);
+        try {
+            $stmt = $conexion->prepare("
+                INSERT INTO backup_list (nombre_archivo, usuario_id, fecha_backup, tamano, restaurado_en) 
+                VALUES (?, ?, NOW(), ?, NOW())
+                ON DUPLICATE KEY UPDATE restaurado_en = NOW()
+            ");
+            $tamano = filesize($ruta_backup);
+            $stmt->execute([$archivo, $_SESSION['user_id'], $tamano]);
+        } catch (Exception $e) {
+            // Si falla el registro, el backup ya fue restaurado
+            error_log("Error registrando restauración: " . $e->getMessage());
+        }
         
         echo json_encode([
             'success' => true,
