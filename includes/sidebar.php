@@ -377,6 +377,13 @@ require_once 'config.php';
                 <span class="sidebar-nav-text">Usuarios</span>
             </a>
         </li>
+
+        <li class="sidebar-nav-item">
+            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'configsistema.php') ? 'active' : ''; ?>" href="configsistema.php" title="Configuración del Sistema">
+                <span class="sidebar-nav-icon"><i class="bi bi-gear"></i></span>
+                <span class="sidebar-nav-text">Configuración</span>
+            </a>
+        </li>
         <?php endif; ?>
 
             <!-- <//?php if (in_array(($_SESSION["role"] ?? ""), ["admin", "tisupport"])): ?>

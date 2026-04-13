@@ -78,10 +78,10 @@ try {
     
     // Obtener comentarios con información de usuario que modificó
     $stmt = $conexion->prepare("
-        SELECT c.*, u.username, 
+        SELECT c.*, COALESCE(u.username, 'Usuario eliminado') as username, 
                COALESCE(um.username, '') as usuario_modifico_nombre
         FROM comentarios_tickets c
-        JOIN users u ON c.usuario_id = u.id
+        LEFT JOIN users u ON c.usuario_id = u.id
         LEFT JOIN users um ON c.usuario_modificado_por = um.id
         WHERE c.ticket_id = ?
         ORDER BY c.fecha DESC

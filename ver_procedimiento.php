@@ -31,9 +31,9 @@ if (empty($procedimiento_id)) {
 try {
     // Obtener procedimiento
     $stmt = $conexion->prepare("
-        SELECT p.*, u.username as autor_nombre
+        SELECT p.*, COALESCE(u.username, 'Usuario eliminado') as autor_nombre
         FROM procedimientos p
-        JOIN users u ON p.usuario_creador = u.id
+        LEFT JOIN users u ON p.usuario_creador = u.id
         WHERE p.id = ?
     ");
     $stmt->execute([$procedimiento_id]);
@@ -44,11 +44,11 @@ try {
     } else {
         // Obtener menciones
         $stmt = $conexion->prepare("
-            SELECT mp.*, t.ticket_number, c.comentario, c.fecha as fecha_comentario, u.username
+            SELECT mp.*, t.ticket_number, c.comentario, c.fecha as fecha_comentario, COALESCE(u.username, 'Usuario eliminado') as username
             FROM menciones_procedimientos mp
-            JOIN tickets t ON mp.ticket_id = t.id
-            JOIN comentarios_tickets c ON mp.comentario_id = c.id
-            JOIN users u ON c.usuario_id = u.id
+            LEFT JOIN tickets t ON mp.ticket_id = t.id
+            LEFT JOIN comentarios_tickets c ON mp.comentario_id = c.id
+            LEFT JOIN users u ON c.usuario_id = u.id
             WHERE mp.procedimiento_id = ?
             ORDER BY mp.fecha_mencion DESC
         ");
@@ -57,9 +57,9 @@ try {
         
         // Obtener historial
         $stmt = $conexion->prepare("
-            SELECT h.*, u.username
+            SELECT h.*, COALESCE(u.username, 'Usuario eliminado') as username
             FROM historial_procedimientos h
-            JOIN users u ON h.usuario_id = u.id
+            LEFT JOIN users u ON h.usuario_id = u.id
             WHERE h.procedimiento_id = ?
             ORDER BY h.fecha_cambio DESC
         ");
