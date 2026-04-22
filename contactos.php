@@ -127,33 +127,33 @@ $offset = ($pagina_contactos - 1) * $contactos_por_pagina;
 $busqueda_contacto = isset($_GET["busqueda_contacto"]) ? trim($_GET["busqueda_contacto"]) : "";
 
 try {
-    // Contar total de contactos (ahora en tabla users con role = 'contacto')
+    // Contar total de contactos y usuarios
     if (!empty($busqueda_contacto)) {
         $stmt = $conexion->prepare(
-            "SELECT COUNT(*) as total FROM users WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)"
+            "SELECT COUNT(*) as total FROM users WHERE (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)"
         );
         $search_term = "%{$busqueda_contacto}%";
         $stmt->execute([$search_term, $search_term, $search_term, $search_term]);
     } else {
-        $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM users WHERE role = 'contacto'");
+        $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM users");
         $stmt->execute();
     }
     $total_contactos = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-    // Obtener contactos con paginación desde users
+    // Obtener contactos y usuarios con paginación desde users
 if (!empty($busqueda_contacto)) {
     $stmt = $conexion->prepare(
         "SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, numero_telefono, dpto_division AS division_departamento, role
          FROM users
-         WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
+         WHERE (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
          ORDER BY nombre_completo
          LIMIT {$contactos_por_pagina} OFFSET {$offset}"
     );
     $search_term = "%{$busqueda_contacto}%";
     $stmt->execute([$search_term, $search_term, $search_term, $search_term]);
 } else {
-    // Línea ~135: Consulta SIN búsqueda
-    $stmt = $conexion->prepare("SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, numero_telefono, dpto_division AS division_departamento, role FROM users WHERE role = 'contacto' ORDER BY nombre_completo LIMIT {$contactos_por_pagina} OFFSET {$offset}");
+    // Consulta SIN búsqueda
+    $stmt = $conexion->prepare("SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, numero_telefono, dpto_division AS division_departamento, role FROM users ORDER BY nombre_completo LIMIT {$contactos_por_pagina} OFFSET {$offset}");
     $stmt->execute();
 }
 $contactos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -333,7 +333,7 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
         <div class="row">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3>Gestión de Contactos</h3>
+                    <h3>Gestión de Contactos y Usuarios</h3>
                 </div>
                 
                 <!-- Botones de acción y búsqueda -->
@@ -349,7 +349,7 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                 <!-- Tabla de Contactos -->
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">📋 Contactos del Sistema (<?php echo $total_contactos; ?>)</h5>
+                        <h5 class="mb-0">📋 Contactos y Usuarios del Sistema (<?php echo $total_contactos; ?>)</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -368,33 +368,41 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                     <?php if (count($contactos) > 0): ?>
                                         <?php foreach ($contactos as $contacto): ?>
                                         <tr data-contacto='<?php echo htmlspecialchars(json_encode($contacto)); ?>'>
-                                            <td><strong><?php echo htmlspecialchars($contacto["nombre_completo"]); ?></strong></td>
+                                            <td><strong><?php echo htmlspecialchars($contacto["nombre_completo"] ?? "N/A"); ?></strong></td>
                                             <td><?php echo htmlspecialchars($contacto["nombre_usuario"] ?? "N/A"); ?></td>
                                             <td><?php echo htmlspecialchars($contacto["correo"] ?? "N/A"); ?></td>
                                             <td><?php echo htmlspecialchars($contacto["numero_telefono"] ?? "N/A"); ?></td>
                                             <td><?php echo htmlspecialchars($contacto["division_departamento"] ?? "N/A"); ?></td>
                                             <td>
-                                                <a href="perfil_contacto.php?username=<?php echo urlencode($contacto["nombre_usuario"]); ?>" class="btn btn-sm btn-outline-info" title="Ver Perfil">
-                                                    <i class="bi bi-person-circle"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(<?php echo htmlspecialchars(json_encode($contacto)); ?>)">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
-                                                    <input type="hidden" name="contacto_id" value="<?php echo $contacto["id"]; ?>">
-                                                    <input type="hidden" name="accion_eliminar_contacto" value="1">
-                                                    <?php echo inputTokenCSRF(); ?>
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                                        <i class="bi bi-trash"></i>
+                                                <?php if ($contacto["role"] === "contacto"): ?>
+                                                    <a href="perfil_contacto.php?username=<?php echo urlencode($contacto["nombre_usuario"]); ?>" class="btn btn-sm btn-outline-info" title="Ver Perfil">
+                                                        <i class="bi bi-person-circle"></i>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="perfil_usuario.php?username=<?php echo urlencode($contacto["nombre_usuario"]); ?>" class="btn btn-sm btn-outline-info" title="Ver Perfil">
+                                                        <i class="bi bi-person-circle"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if ($contacto["role"] === "contacto"): ?>
+                                                    <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(<?php echo htmlspecialchars(json_encode($contacto)); ?>)">
+                                                        <i class="bi bi-pencil"></i>
                                                     </button>
-                                                </form>
+                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
+                                                        <input type="hidden" name="contacto_id" value="<?php echo $contacto["id"]; ?>">
+                                                        <input type="hidden" name="accion_eliminar_contacto" value="1">
+                                                        <?php echo inputTokenCSRF(); ?>
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
                                             <td colspan="6" class="text-center text-muted py-4">
-                                                <?php echo !empty($busqueda_contacto) ? "No se encontraron contactos" : "No hay contactos registrados aún"; ?>
+                                                <?php echo !empty($busqueda_contacto) ? "No se encontraron contactos o usuarios" : "No hay contactos o usuarios registrados aún"; ?>
                                             </td>
                                         </tr>
                                     <?php endif; ?>
@@ -575,6 +583,9 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                     if (data.contactos && data.contactos.length > 0) {
                         data.contactos.forEach(contacto => {
                             const fila = document.createElement('tr');
+                            const perfilURL = contacto.role === 'contacto' 
+                                ? `perfil_contacto.php?username=${encodeURIComponent(contacto.nombre_usuario)}`
+                                : `perfil_usuario.php?username=${encodeURIComponent(contacto.nombre_usuario)}`;
                             fila.innerHTML = `
                                 <td><strong>${htmlEscape(contacto.nombre_completo)}</strong></td>
                                 <td>${htmlEscape(contacto.nombre_usuario || 'N/A')}</td>
@@ -582,27 +593,29 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                 <td>${htmlEscape(contacto.numero_telefono || 'N/A')}</td>
                                 <td>${htmlEscape(contacto.division_departamento || 'N/A')}</td>
                                 <td>
-                                    <a href="perfil_contacto.php?username=${encodeURIComponent(contacto.nombre_usuario)}" class="btn btn-sm btn-outline-info" title="Ver Perfil">
+                                    <a href="${perfilURL}" class="btn btn-sm btn-outline-info" title="Ver Perfil">
                                         <i class="bi bi-person-circle"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(${JSON.stringify(contacto).replace(/"/g, '&quot;')})">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
-                                        <input type="hidden" name="contacto_id" value="${contacto.id}">
-                                        <input type="hidden" name="accion_eliminar_contacto" value="1">
-                                        <?php echo inputTokenCSRF(); ?>
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                            <i class="bi bi-trash"></i>
+                                    ${contacto.role === 'contacto' ? `
+                                        <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(${JSON.stringify(contacto).replace(/"/g, '&quot;')})">
+                                            <i class="bi bi-pencil"></i>
                                         </button>
-                                    </form>
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
+                                            <input type="hidden" name="contacto_id" value="${contacto.id}">
+                                            <input type="hidden" name="accion_eliminar_contacto" value="1">
+                                            <?php echo inputTokenCSRF(); ?>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    ` : ''}
                                 </td>
                             `;
                             tbody.appendChild(fila);
                         });
                     } else {
                         const fila = document.createElement('tr');
-                        fila.innerHTML = '<td colspan="6" class="text-center text-muted py-4">No se encontraron contactos</td>';
+                        fila.innerHTML = '<td colspan="6" class="text-center text-muted py-4">No se encontraron contactos o usuarios</td>';
                         tbody.appendChild(fila);
                     }
                 })

@@ -9,6 +9,7 @@ if (!isset($_SESSION["user_id"])) {
 }
 
 // Obtener información del usuario
+$es_cambio_forzado = false;
 try {
     // Verificar si la columna existe
     $check_columns = $conexion->query("SHOW COLUMNS FROM users");
@@ -24,6 +25,11 @@ try {
     
     $stmt->execute([$_SESSION["user_id"]]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Determinar si es un cambio forzado
+    if ($has_necesita_cambiar && $user && $user["necesita_cambiar_password"]) {
+        $es_cambio_forzado = true;
+    }
     
     // Si el usuario ya cambió su contraseña, redirigir al dashboard
     // (Solo si la columna existe y vale 0)
@@ -131,13 +137,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="row justify-content-center">
             <div class="col-md-7">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">⚠️ Cambiar Contraseña Temporal</h5>
+                    <div class="card-header <?php echo $es_cambio_forzado ? 'bg-warning' : ''; ?>">
+                        <h5 class="mb-0">
+                            <?php echo $es_cambio_forzado ? '🔐 Cambio de Contraseña Obligatorio' : '⚠️ Cambiar Contraseña Temporal'; ?>
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted mb-3">
-                            Por seguridad, debe cambiar su contraseña temporal en el primer acceso.
-                        </p>
+                        <?php if ($es_cambio_forzado): ?>
+                            <div class="alert alert-warning border-0 mb-3" role="alert">
+                                <strong><i class="bi bi-exclamation-triangle"></i> Acción Requerida:</strong> 
+                                Debe cambiar su contraseña para continuar usando el sistema. Esto es requerido por seguridad.
+                            </div>
+                        <?php else: ?>
+                            <p class="text-muted mb-3">
+                                Por seguridad, debe cambiar su contraseña temporal en el primer acceso.
+                            </p>
+                        <?php endif; ?>
                         
                         <?php if (!empty($error)): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -194,7 +209,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 document.body.classList.add('fade-out');
                 // Redirigir después de que termine la animación
                 setTimeout(() => {
-                    window.location.href = 'monitoreo.php';
+                    window.location.href = 'reportes.php';
                 }, 600);
             }, 500);
         }

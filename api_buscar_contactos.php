@@ -21,7 +21,7 @@ try {
     $stmt = $conexion->prepare("
         SELECT id, nombre_completo, username AS nombre_usuario, email AS correo, numero_telefono, dpto_division AS division_departamento, role
         FROM users
-        WHERE role = 'contacto' AND (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
+        WHERE (nombre_completo LIKE ? OR username LIKE ? OR email LIKE ? OR dpto_division LIKE ?)
         ORDER BY nombre_completo
         LIMIT 50
     ");

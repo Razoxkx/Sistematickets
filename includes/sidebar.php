@@ -377,13 +377,6 @@ require_once 'config.php';
                 <span class="sidebar-nav-text">Usuarios</span>
             </a>
         </li>
-
-        <li class="sidebar-nav-item">
-            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'configsistema.php') ? 'active' : ''; ?>" href="configsistema.php" title="Configuración del Sistema">
-                <span class="sidebar-nav-icon"><i class="bi bi-gear"></i></span>
-                <span class="sidebar-nav-text">Configuración</span>
-            </a>
-        </li>
         <?php endif; ?>
 
             <!-- <//?php if (in_array(($_SESSION["role"] ?? ""), ["admin", "tisupport"])): ?>
@@ -407,6 +400,15 @@ require_once 'config.php';
             <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'cuentas_servicio.php' || basename($_SERVER['PHP_SELF']) === 'crear_cuenta_servicio.php' || basename($_SERVER['PHP_SELF']) === 'editar_cuenta_servicio.php') ? 'active' : ''; ?>" href="cuentas_servicio.php" title="Cuentas de Servicio">
                 <span class="sidebar-nav-icon"><i class="bi bi-key-fill"></i></span>
                 <span class="sidebar-nav-text">Cuentas</span>
+            </a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (($_SESSION["role"] ?? "") === "admin"): ?>
+        <li class="sidebar-nav-item">
+            <a class="sidebar-nav-link <?php echo (basename($_SERVER['PHP_SELF']) === 'configsistema.php') ? 'active' : ''; ?>" href="configsistema.php" title="Configuración del Sistema">
+                <span class="sidebar-nav-icon"><i class="bi bi-gear"></i></span>
+                <span class="sidebar-nav-text">Configuración</span>
             </a>
         </li>
         <?php endif; ?>

@@ -152,7 +152,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar"])) {
                 $valores[] = $password_hash;
                 
                 if ($has_necesita_cambiar) {
-                    $campos_update[] = 'necesita_cambiar_password = 0';
+                    // Si la nueva contraseña es la contraseña temporal "111111", marcar para cambio obligatorio
+                    if ($_POST["password_nueva"] === "111111") {
+                        $campos_update[] = 'necesita_cambiar_password = 1';
+                    } else {
+                        $campos_update[] = 'necesita_cambiar_password = 0';
+                    }
                 }
             }
             
