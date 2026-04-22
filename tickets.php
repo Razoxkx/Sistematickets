@@ -186,10 +186,10 @@ try {
     
     // Obtener tickets
     $stmt = $conexion->prepare("
-        SELECT t.*, COALESCE(u.username, 'Usuario eliminado') as creador_nombre,
+        SELECT t.*, u.username as creador_nombre,
                tp.ticket_number as padre_numero
         FROM tickets t
-        LEFT JOIN users u ON t.usuario_creador = u.id
+        JOIN users u ON t.usuario_creador = u.id
         LEFT JOIN tickets tp ON t.ticket_padre_id = tp.id
         WHERE " . $where . "
         ORDER BY " . $columna_orden . " " . $direccion . "
@@ -467,11 +467,7 @@ function getEstadoColor($estado) {
                                         $stmt = $conexion->prepare("SELECT username FROM users WHERE id = ?");
                                         $stmt->execute([$ticket["responsable"]]);
                                         $resp = $stmt->fetch(PDO::FETCH_ASSOC);
-                                        if ($resp && !empty($resp["username"])) {
-                                            echo '<span class="badge bg-success">' . htmlspecialchars($resp["username"]) . '</span>';
-                                        } else {
-                                            echo '<span class="badge bg-warning">Usuario eliminado</span>';
-                                        }
+                                        echo '<span class="badge bg-success">' . htmlspecialchars($resp["username"]) . '</span>';
                                     } else {
                                         echo '<span class="badge bg-secondary">Sin asignar</span>';
                                     }
