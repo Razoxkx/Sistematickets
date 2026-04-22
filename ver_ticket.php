@@ -78,10 +78,10 @@ try {
     
     // Obtener comentarios con información de usuario que modificó
     $stmt = $conexion->prepare("
-        SELECT c.*, COALESCE(u.username, 'Usuario eliminado') as username, 
+        SELECT c.*, u.username, 
                COALESCE(um.username, '') as usuario_modifico_nombre
         FROM comentarios_tickets c
-        LEFT JOIN users u ON c.usuario_id = u.id
+        JOIN users u ON c.usuario_id = u.id
         LEFT JOIN users um ON c.usuario_modificado_por = um.id
         WHERE c.ticket_id = ?
         ORDER BY c.fecha DESC
@@ -1063,7 +1063,7 @@ $estados = ['sin abrir', 'en conocimiento', 'en proceso', 'ticket cerrado', 'pen
                     <?php endif; ?>
                 </div>
                 <div class="descripcion-contenido">
-                    <div id="texto-descripcion" style="margin-bottom: 15px;"><?php echo nl2br(procesarHashtagsContactos(procesarMencionesTikets(htmlspecialchars($ticket["descripcion"])))); ?></div>
+                    <div id="texto-descripcion" style="margin-bottom: 15px;"><?php echo nl2br(procesarHashtagsContactos(procesarMencionesTikets($ticket["descripcion"]))); ?></div>
                     <small class="texto-muted-case"><i class="bi bi-clock"></i> Última modificación: <?php echo formatearFechaHora($ticket["fecha_ultima_modificacion"]); ?></small>
                 </div>
             </div>
