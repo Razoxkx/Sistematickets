@@ -41,16 +41,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_crear_contacto"
     $correo = trim($_POST["correo"] ?? "");
     $numero_telefono = trim($_POST["numero_telefono"] ?? "");
     $division_departamento = trim($_POST["division_departamento"] ?? "");
+    $role = $_SESSION["role"] === "admin" ? trim($_POST["role"] ?? "contacto") : "contacto";
     
     if (empty($nombre_completo)) {
         $error = "El nombre completo es obligatorio";
+    } else if (($_SESSION["role"] === "tisupport") && in_array($role, ['admin', 'tisupport'])) {
+        // tisupport no puede crear usuarios con roles admin o tisupport
+        $error = "No tienes permiso para asignar el rol " . traducirRol($role);
     } else {
         try {
             $stmt = $conexion->prepare("
                 INSERT INTO users (nombre_completo, username, email, numero_telefono, dpto_division, role, password)
-                VALUES (?, ?, ?, ?, ?, 'contacto', ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, '', $division_departamento, password_hash('', PASSWORD_BCRYPT)]);
+            $stmt->execute([$nombre_completo, $nombre_usuario, $correo, '', $division_departamento, $role, password_hash('', PASSWORD_BCRYPT)]);
             
             header("Location: contactos.php?success=contacto_creado");
             exit();
@@ -79,6 +83,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_editar_contacto
     
     if (empty($nombre_completo)) {
         $error = "El nombre completo es obligatorio";
+    } else if (($_SESSION["role"] === "tisupport") && in_array($role, ['admin', 'tisupport'])) {
+        // tisupport no puede crear/editar usuarios con roles admin o tisupport
+        $error = "No tienes permiso para asignar el rol " . traducirRol($role);
     } else {
         try {
             $stmt = $conexion->prepare("
@@ -106,13 +113,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["accion_eliminar_contac
     } else {
     $contacto_id = $_POST["contacto_id"] ?? "";
     if (!empty($contacto_id)) {
-        try {
-            $stmt = $conexion->prepare("DELETE FROM users WHERE id = ? AND role = 'contacto'");
-            $stmt->execute([$contacto_id]);
-            header("Location: contactos.php?success=contacto_eliminado");
-            exit();
-        } catch (PDOException $e) {
-            $error = "Error al eliminar contacto: " . $e->getMessage();
+        // No permitir autoeliminación
+        if ($contacto_id == $_SESSION["user_id"]) {
+            $error = "No puedes eliminar tu propia cuenta";
+        } else {
+            try {
+                // Solo admin puede eliminar otros usuarios admin/tisupport
+                // Contactos pueden ser eliminados por anyone con permiso
+                if ($_SESSION["role"] === "admin") {
+                    $stmt = $conexion->prepare("DELETE FROM users WHERE id = ?");
+                    $stmt->execute([$contacto_id]);
+                } else {
+                    // tisupport solo puede eliminar contactos
+                    $stmt = $conexion->prepare("DELETE FROM users WHERE id = ? AND role = 'contacto'");
+                    $stmt->execute([$contacto_id]);
+                }
+                header("Location: contactos.php?success=contacto_eliminado");
+                exit();
+            } catch (PDOException $e) {
+                $error = "Error al eliminar contacto: " . $e->getMessage();
+            }
         }
     }
     }
@@ -383,10 +403,12 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                                         <i class="bi bi-person-circle"></i>
                                                     </a>
                                                 <?php endif; ?>
-                                                <?php if ($contacto["role"] === "contacto"): ?>
+                                                <?php if ($contacto["role"] === "contacto" || ($_SESSION["role"] === "admin")): ?>
                                                     <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(<?php echo htmlspecialchars(json_encode($contacto)); ?>)">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
+                                                <?php endif; ?>
+                                                <?php if (($contacto["role"] === "contacto" || ($_SESSION["role"] === "admin")) && $contacto["id"] != $_SESSION["user_id"]): ?>
                                                     <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
                                                         <input type="hidden" name="contacto_id" value="<?php echo $contacto["id"]; ?>">
                                                         <input type="hidden" name="accion_eliminar_contacto" value="1">
@@ -483,6 +505,17 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                             <label for="division_departamento_new" class="form-label">División/Departamento</label>
                             <input type="text" class="form-control" id="division_departamento_new" name="division_departamento" placeholder="ej: Recursos Humanos">
                         </div>
+                        <?php if ($_SESSION["role"] === "admin"): ?>
+                        <div class="mb-3">
+                            <label for="role_new_contacto" class="form-label">Rol</label>
+                            <select class="form-select" id="role_new_contacto" name="role">
+                                <option value="contacto" selected>📇 Contacto</option>
+                                <option value="viewer">👁️ Lector</option>
+                                <option value="tisupport">🔧 Soporte TI</option>
+                                <option value="admin">🔑 Administrador</option>
+                            </select>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -596,19 +629,17 @@ $total_paginas_contactos = ceil($total_contactos / $contactos_por_pagina);
                                     <a href="${perfilURL}" class="btn btn-sm btn-outline-info" title="Ver Perfil">
                                         <i class="bi bi-person-circle"></i>
                                     </a>
-                                    ${contacto.role === 'contacto' ? `
-                                        <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(${JSON.stringify(contacto).replace(/"/g, '&quot;')})">
-                                            <i class="bi bi-pencil"></i>
+                                    <button type="button" class="btn btn-sm btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#modalEditarContacto" onclick="cargarDatosEditarContacto(${JSON.stringify(contacto).replace(/"/g, '&quot;')})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
+                                        <input type="hidden" name="contacto_id" value="${contacto.id}">
+                                        <input type="hidden" name="accion_eliminar_contacto" value="1">
+                                        <?php echo inputTokenCSRF(); ?>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
                                         </button>
-                                        <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro?');">
-                                            <input type="hidden" name="contacto_id" value="${contacto.id}">
-                                            <input type="hidden" name="accion_eliminar_contacto" value="1">
-                                            <?php echo inputTokenCSRF(); ?>
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    ` : ''}
+                                    </form>
                                 </td>
                             `;
                             tbody.appendChild(fila);
